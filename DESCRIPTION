@@ -1,0 +1,13 @@
+Package: popsom
+Version: 3.0.1
+Date: 2015-07-22
+Title: Routines for Constructing and Evaluating Self-Organizing Maps
+Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "hamel@cs.uri.edu"),
+		     person("Benjamin", "Ott", role = "aut"), person("Gregory", "Breard", role = "aut"))
+Maintainer: Lutz Hamel <hamel@cs.uri.edu>
+Imports: som, fields, graphics, stats, grDevices	
+Description: A set of routines which are useful in constructing 
+	and evaluating self-organizing maps (SOMs).
+License: GPL
+URL: http://homepage.cs.uri.edu/faculty/hamel/
+Packaged: 2015-07-22 03:12:12 UTC; Greg
