@@ -1,28 +1,25 @@
 ### map-utils.r 
-# version 3.0
-# (c) 2009-2015 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
+# version 4.0
+# (c) 2009-2016 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #
 # This file constitues a set of routines which are useful in constructing
 # and evaluating self-organizing maps (SOMs).  The utilities are built around
 # the 'som' library available from the CRAN archive (see the package installer
 # and package manager).  The main utilities available in this file are:
 #	map.build - constructs a map
-#   map.quality - reports two values: 1) embedding accuracy 2) topographic accuracy
-#	map.convergence - reports the accuracy of the map in terms of modeling the
+#   map.convergence - reports the map convergence index
+#	map.embedding - reports the embedding of the map in terms of modeling the
 #                     underlying data distribution (100% if all feature distributions
 #                     are modeled correctly, 0% if none are)
 #   map.accuracy - reports the estimated topographic accuracy
 #	map.significance - graphically reports the significance of each feature with
 #                      respect to the self-organizing map model
-#	map.umat - displays the "unified distance matrix" (umat) of the SOM model (lighter
-#              represent strong clusters, dark colors represent weak clusters)
 #	map.starburst - displays the starburst representation of the SOM model, the centers of
 #                   starbursts are the centers of clusters
 #	map.projection - print a table with the associations of labels with map elements
-#   map.feature - compute and display the enhanced unified distance matrix for a 
-#                 feature of the training data
 #
 ### bug fixes
+# lhh - 6/11/16 - added support for the vectorized version of SOM
 # lhh - 7/14/15 - added the topographic accuracy functionality.
 #
 # lhh - 12/4/13 - added two sample test for mean to the convergence test.
@@ -83,55 +80,95 @@ require(graphics)
 # Hint: if your training data does not have any labels you can construct
 #       simple label vector as follows: labels <- 1:nrow(training.data)
 
-map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000) {
-
+map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000,algorithm="som")
+{
+    # NOTE: vsom is an experimental implementation of a vectorized SOM training algorithm
+    
+    algorithm.init = c("som","vsom") # som == 1, vsom == 2
+    
+    if (!pmatch(algorithm,algorithm.init,nomatch=0))
+        stop("map.build only supports 'som' and 'vsom'")
+        
 	# check if the dims are reasonable
-	if (xdim < 2 || ydim < 2)
+	if (xdim < 3 || ydim < 3)
 		stop("map.build: map is too small.")
-
-	# compute the initial neighborhood radius
-	r <- sqrt(xdim^2 + ydim^2)
-
-	# train the map
-	m <- som(data,
-			 xdim=xdim,
-			 ydim=ydim,
-			 init="random",
-			 alpha=c(alpha,alpha),
-			 alphaType="linear",
-			 neigh="bubble",
-			 topol="rect",
-			 radius=c(r,r),
-			 rlen=c(1,train))
-
-	# we add one more field to the list we get back from som
-	# namely the labels as a data frame.
-	m$labels <- data.frame(labels)
 	
-	# the new list is now an object of type 'map'
-	class(m) <- "map"
-	
-	# return the map
-	m
+    # train the map - returns a list of neurons
+    if (pmatch(algorithm,"som",nomatch=0) == 1)
+    {
+        # compute the initial neighborhood radius
+        r <- sqrt(xdim^2 + ydim^2)
+
+        m <- som(data,
+                 xdim=xdim,
+                 ydim=ydim,
+                 init="random",
+                 alpha=c(alpha,alpha),
+                 alphaType="linear",
+                 neigh="bubble",
+                 topol="rect",
+                 radius=c(r,r),
+                 rlen=c(1,train))
+        
+        # the som package does something really annoying with attributes
+        # we get rid of that by casting the neurons as a new matrix
+        neurons <- matrix(m$code,xdim*ydim,ncol(data))
+    }
+    else
+    {
+        neurons <- vsom(data,
+                        xdim=xdim,
+                        ydim=ydim,
+                        alpha=alpha,
+                        train=train)
+    }
+    
+    ### construct the map object
+    map <- list(data=data,
+                labels=labels,
+                xdim=xdim,
+                ydim=ydim,
+                alpha=alpha,
+                train=train,
+                neurons=neurons)
+            
+    ### add the visual field to map
+    # for each observations i visual has an entry for
+    # the best matching neuron
+    
+    visual <- c()
+    for (i in 1:nrow(data))
+    {
+        b <- best.match(map,data[i,])
+        visual <- c(visual,b)
+    }
+    
+    map$visual <- visual
+    
+    ### add the class name
+    class(map) <- "map"
+    
+    return(map)
 }
 
-### map.quality - measure the quality of a map
+### map.convergence - the convergence index of a map
 #
 # parameters:
 # - map is an object if type 'map'
 # - conf.int is the confidence interval of the quality assessment (default 95%)
 # - k is the number of samples used for the estimated topographic accuracy computation
 #
-# - return value is a pair of values: 1) embedding accuracy 2) topographic accuracy
+# - return value is the convergence index
 
-map.quality <- function(map,conf.int=.95,k=50) {
-    embedding.val <- map.convergence(map,conf.int,verb=FALSE)
-    accuracy.val <- map.accuracy(map,k,conf.int,verb=FALSE)
+map.convergence <- function(map,conf.int=.95,k=50)
+{
+    embedding <- map.embedding(map,conf.int,verb=FALSE)
+    accuracy <- map.accuracy(map,k,conf.int,verb=FALSE,interval=FALSE)
     
-    list(embedding=embedding.val,accuracy=accuracy.val)
+    return (0.5*embedding + 0.5*accuracy)
 }
 
-### map.convergence - evaluate the convergence of a map using the F-test and
+### map.embedding - evaluate the embedding of a map using the F-test and
 #                     a Bayesian estimate of the variance in the training data.
 # parameters:
 # - map is an object if type 'map'
@@ -139,20 +176,19 @@ map.quality <- function(map,conf.int=.95,k=50) {
 # - verb is switch that governs the return value false: single convergence value
 #   is returned, true: a vector of individual feature congences is returned.
 #
-# - return value is the convergence index of the map (variance captured by the map so far)
+# - return value is the cembedding of the map (variance captured by the map so far)
 
-# Hint: the convergence index is the variance of the trainig data captured by the map;
+# Hint: the embedding index is the variance of the trainig data captured by the map;
 #       maps with convergence of less than 90% are typically not trustworthy.  Of course,
 #       the precise cut-off depends on the noise level in your training data. 
 
-map.convergence <- function(map,conf.int=.95,verb=FALSE) {
-
+map.embedding <- function(map,conf.int=.95,verb=FALSE)
+{
 	 if (class(map) != "map")
-		stop("map.convergence: first argument is not a map object.")
+		stop("map.embedding: first argument is not a map object.")
 	 
-	 # map.df is a dataframe that contains the code vectors
-	 # note: map$code is what the 'som' package produces
-	 map.df <- data.frame(map$code)
+	 # map.df is a dataframe that contains the neurons
+	 map.df <- data.frame(map$neurons)
 
 	 # data.df is a dataframe that contain the training data
 	 # note: map$data is what the 'som' package returns
@@ -168,7 +204,8 @@ map.convergence <- function(map,conf.int=.95,verb=FALSE) {
 	 nfeatures <- ncol(map.df)
 	 prob.v <- map.significance(map,graphics=FALSE)
 	 var.sum <- 0
-	 for (i in 1:nfeatures) {
+	 for (i in 1:nfeatures)
+     {
             #cat("Feature",i,"variance:\t",vl$ratio[i],"\t(",vl$conf.int.lo[i],"-",vl$conf.int.hi[i],")\n")
 	    #cat("Feature",i,"mean:\t",ml$diff[i],"\t(",ml$conf.int.lo[i],"-",ml$conf.int.hi[i],")\n")
             if (vl$conf.int.lo[i] <= 1.0 && vl$conf.int.hi[i] >= 1.0 &&
@@ -181,9 +218,9 @@ map.convergence <- function(map,conf.int=.95,verb=FALSE) {
 
 	# return the variance captured by converged features
 	if (verb)
-       	   prob.v
+        prob.v
 	else
-	   var.sum
+        var.sum
 }
 
 ### map.accuracy - measure the topographic accuracy of the map using sampling
@@ -194,11 +231,12 @@ map.convergence <- function(map,conf.int=.95,verb=FALSE) {
 # - conf.int is the confidence interval of the accuracy test (default 95%)
 # - verb is switch that governs the return value, false: single accuracy value
 #   is returned, true: a vector of individual feature accuracies is returned.
+# - interval is a switch that controls whether the confidence interval is computed.
 #
 # - return value is the estimated topographic accuracy
 
-map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE) {
-
+map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
+{
     if (class(map) != "map")
         stop("map.accuracy: first argument is not a map object.")
 
@@ -212,22 +250,33 @@ map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE) {
     
     data.sample.ix <- sample(1:nrow(data.df),size=k,replace=FALSE)
 
-    # compute the sum topographic accuracy - the accuracy of a sinle sample
-    # is 1 is the best matching unit is a neighbor otherwise it is 0
+    # compute the sum topographic accuracy - the accuracy of a single sample
+    # is 1 if the best matching unit is a neighbor otherwise it is 0
     acc.v <- c()
-    for (i in 1:k) {
+    for (i in 1:k)
+    {
         acc.v <- c(acc.v,accuracy(map,data.df[data.sample.ix[i],],data.sample.ix[i]))
     }
     
     # compute the confidence interval values using the bootstrap
-    bval <- bootstrap(map,conf.int,data.df,k,acc.v)
+    if (interval)
+        bval <- bootstrap(map,conf.int,data.df,k,acc.v)
     
     # the sum topographic accuracy is scaled by the number of samples - estimated
     # topographic accuracy
     if (verb)
+    {
         acc.v
+    }
     else
-        list(acc=sum(acc.v)/k,lo=bval$lo,hi=bval$hi)
+    {
+        val <- sum(acc.v)/k
+        if (interval)
+            list(val=val,lo=bval$lo,hi=bval$hi)
+        else
+            val
+        
+    }
 }
 
 ### map.starburst - compute and display the starburst representation of clusters
@@ -236,48 +285,14 @@ map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE) {
 # - explicit controls the shape of the connected components
 # - smoothing controls the smoothing level of the umat (NULL,0,>0)
 
-map.starburst <- function(map,explicit=FALSE,smoothing=2) {
+map.starburst <- function(map,explicit=FALSE,smoothing=2)
+{
 
 	if (class(map) != "map")
 		stop("map.starburst: first argument is not a map object.")
 
 	umat <- compute.umat(map,smoothing=smoothing)
-	plots.heat(map,umat,explicit=explicit,comp=TRUE)
-}
-
-
-### map.umat - compute and display the unified distance matrix
-# parameters:
-# - map is an object if type 'map'
-
-map.umat <- function(map) {
-
-	if (class(map) != "map")
-		stop("map.umat: first argument is not a map object.")
-
-	umat <- compute.umat(map,smoothing=NULL)
-	plots.heat(map,umat,comp=FALSE)
-}
-
-
-### map.feature - compute and display the enhanced unified distance matrix for a 
-#                 feature of the training data
-# parameters:
-# - map is an object if type 'map'
-# - feature is an integer as the index of the feature. 
-# - explicit controls the shape of the connected components
-# - smoothing controls the smoothing level of the umat (NULL,0,>0)
-
-map.feature <- function(map,feature,explicit=FALSE,smoothing=2) {
-
-	if (class(map) != "map")
-		stop("map.feature: first argument is not a map object.")
-
-	if (feature > ncol(data.frame(map$data)) || feature < 1)
-		stop("map.feature: illegal feature index.")
-
-	heat <- compute.plane(map,feature,smoothing=smoothing)
-	plots.heat(map,heat,explicit=explicit,comp=TRUE)
+	plot.heat(map,umat,explicit=explicit,comp=TRUE)
 }
 
 
@@ -287,22 +302,34 @@ map.feature <- function(map,feature,explicit=FALSE,smoothing=2) {
 # return values:
 # - a dataframe containing the projection onto the map for each observation
 
-map.projection <- function(map) {
-
+map.projection <- function(map)
+{
 	if (class(map) != "map")
 		stop("map.projection: first argument is not a map object.")
 
-	labels <- map$labels
-	if (is.null(labels))
+	if (is.null(map$labels))
 		stop("map.projection: no labels available")
-		
-	x <- map$visual$x + 1
-	y <- map$visual$y +1
-	names(labels[[1]]) <- "labels"
-	names(x[[1]]) <- "x"
-	names(y[[1]]) <- "y"
+
+    labels.v <- map$labels
+    x.v <- c()
+    y.v <- c()
+    
+    for (i in 1:nrow(labels.v))
+    {
+        ix <- map$visual[i]
+        coord <- coordinate(map,ix)
+        x.v <- c(x.v,coord[1])
+        y.v <- c(y.v,coord[2])
+    }
+
+    x.v <- data.frame(x.v)
+    y.v <- data.frame(y.v)
+    
+    names(labels.v) <- "labels"
+	names(x.v) <- "x"
+	names(y.v) <- "y"
 	
-	data.frame(labels,x,y)
+	data.frame(labels.v,x.v,y.v)
 }
 
 ### map.significance - compute the relative significance of each feature and plot it
@@ -313,8 +340,8 @@ map.projection <- function(map) {
 # return value:
 # - a vector containing the significance for each feature
 
-map.significance <- function(map,graphics=TRUE,feature.labels=TRUE) {
-
+map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
+{
 	if (class(map) != "map")
 		stop("map.significance: first argument is not a map object.")
 
@@ -323,7 +350,8 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE) {
 
 	# Compute the variance of each feature on the map
 	var.v <- array(data=1,dim=nfeatures)
-	for (i in 1:nfeatures) { 
+	for (i in 1:nfeatures)
+    {
 		var.v[i] <- var(data.df[[i]]);
 	}
 
@@ -335,7 +363,8 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE) {
 	prob.v <- var.v/var.sum
 
 	# plot the significance
-	if (graphics) {
+	if (graphics)
+    {
 		par.v <- map.graphics.set()	
 
 		y <- max(prob.v)
@@ -359,7 +388,9 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE) {
 
 		map.graphics.reset(par.v)
 
-	} else {
+	}
+    else
+    {
 		prob.v
 	}
 }
@@ -371,13 +402,15 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE) {
 
 # bootstrap -- compute the topographic accuracies for the given confidence interval
 
-bootstrap <- function(map,conf.int,data.df,k,sample.acc.v) {
+bootstrap <- function(map,conf.int,data.df,k,sample.acc.v)
+{
     ix <- as.integer(100 - conf.int*100)
     bn <- 200
     
     bootstrap.acc.v <- c(sum(sample.acc.v)/k)
     
-    for (i in 2:bn) {
+    for (i in 2:bn)
+    {
         bs.v <- sample(1:k,size=k,replace=TRUE)
         a <- sum(sample.acc.v[bs.v])/k
         bootstrap.acc.v <- c(bootstrap.acc.v,a)
@@ -391,39 +424,48 @@ bootstrap <- function(map,conf.int,data.df,k,sample.acc.v) {
     list(lo=lo.val,hi=hi.val)
 }
 
+# best.match -- given observation obs, return the best matching neuron
+
+best.match <- function(map,obs,full=FALSE)
+{
+    # NOTE: replicate obs so that there are nr rows of obs
+    obs.m <- matrix(as.numeric(obs),nrow(map$neurons),ncol(map$neurons),byrow=TRUE)
+    diff <- map$neurons - obs.m
+    squ <- diff * diff
+    s <- rowSums(squ)
+    d <- sqrt(s)
+    o <- order(d)
+    
+    if (full)
+        o
+    else
+        o[1]
+}
 
 # accuracy -- the topographic accuracy of a single sample is 1 is the best matching unit
 #             and the second best matching unit are are neighbors otherwise it is 0
 
-accuracy <- function(map,sample,data.ix) {
-
-    # note: map$code is what the 'som' package produces
-
-    # compute the euclidean distances of the sample from the code vectors
+accuracy <- function(map,sample,data.ix)
+{
+    # compute the euclidean distances of the sample from the neurons
     # and find the 2 best matching units for the sample
-    diff <- c()
-    for (i in 1:nrow(map$code)) {
-        diff <- c(diff,map$code[i,] - sample)
-    }
-    diff <- matrix(diff,nrow=nrow(map$code),ncol=ncol(map$code),byrow=TRUE)
-    diff.sq <- diff * diff
-    sums <- rowSums(diff.sq)
-    dist <- sqrt(sums)
-    order.ix <- order(dist)
-    best.ix <- order.ix[1]
-    second.best.ix <- order.ix[2]
+
+    o <- best.match(map,sample,full=TRUE)
+    best.ix <- o[1]
+    second.best.ix <- o[2]
     
     # sanity check
     coord <- coordinate(map,best.ix)
     coord.x <- coord[1]
     coord.y <- coord[2]
 
-    map.x <- map$visual$x[data.ix] + 1
-    map.y <- map$visual$y[data.ix] + 1
-    map.rix <- rowix(map,map.x,map.y)
+    map.ix <- map$visual[data.ix]
+    coord <- coordinate(map,map.ix)
+    map.x <- coord[1]
+    map.y <- coord[2]
  
-    if (coord.x != map.x || coord.y != map.y || best.ix != map.rix){
-        cat("best.ix: ",best.ix," map.rix: ",map.rix,"\n")
+    if (coord.x != map.x || coord.y != map.y || best.ix != map.ix){
+        cat("best.ix: ",best.ix," map.rix: ",map.ix,"\n")
         stop("accuracy: problems with coordinates")
     }
     
@@ -446,17 +488,15 @@ accuracy <- function(map,sample,data.ix) {
 # coordinate -- convert from a row index to a map xy-coordinate
 
 coordinate <- function(map,rowix) {
-    xdim <- map$xdim
-    x <- (rowix-1) %% xdim + 1
-    y <- (rowix-1) %/% xdim + 1
+    x <- (rowix-1) %% map$xdim + 1
+    y <- (rowix-1) %/% map$xdim + 1
     c(x,y)
 }
 
 #rowix -- convert from a map xy-coordinate to a row index
 
 rowix <- function(map,x,y) {
-    xdim <- map$xdim
-    rix <- (x-1) + (y-1)*xdim + 1
+    rix <- x + (y-1)*map$xdim
     rix
 }
 
@@ -476,7 +516,7 @@ map.graphics.reset <- function(par.vector) {
 	par(ps=par.vector$ps)
 }
 
-### plots.heat - plot a heat map based on a 'map', this plot also contains the connected
+### plot.heat - plot a heat map based on a 'map', this plot also contains the connected
 #               components of the map based on the landscape of the heat map
 # parameters:
 # - map is an object if type 'map'
@@ -485,19 +525,20 @@ map.graphics.reset <- function(par.vector) {
 # - explicit controls the shape of the connected components
 # - comp controls whether we plot the connected components on the heat map
 
-plots.heat <- function(map,heat,explicit=FALSE,comp=TRUE) {
-
-	labels <- map$labels
-	if (is.null(labels))
+plot.heat <- function(map,heat,explicit=FALSE,comp=TRUE)
+{
+	if (is.null(map$labels))
 		stop("plot.heat: no labels available")
 
+    labels <- map$labels
 	x <- map$xdim
 	y <- map$ydim
 	nobs <- nrow(map$data)
 	count <- array(data=0,dim=c(x,y))
 
 	# need to make sure the map doesn't have a dimension of 1
-	if (x > 1 && y > 1) {
+	if (x > 1 && y > 1)
+    {
 		# bin the heat values into 100 bins used for the 100 heat colors below
 		heat.v <- as.vector(heat)
 		heat.v <- cut(heat.v,breaks=100,labels=FALSE)
@@ -521,23 +562,28 @@ plots.heat <- function(map,heat,explicit=FALSE,comp=TRUE) {
 	axis(2,at=yticks,labels=ylabels)
 	axis(4,at=yticks,labels=ylabels)
 		
-	# plot heat
 	colors<- heat.colors(100)
 	
-	for (ix in 1:x) {
-		for (iy in 1:y) {
+    ### plot the neurons as heat squares on the map
+    # TODO: vectorize this - rect can operate on vectors of coordinates and values
+	for (ix in 1:x)
+    {
+		for (iy in 1:y)
+        {
 			rect(ix-1,iy-1,ix,iy,col=colors[100 - heat[ix,iy] + 1],border=NA)
 		}
 	}
 	
-	# put the connected component lines on the map
-	if (comp) {
-
+	### put the connected component lines on the map
+	if (comp)
+    {
 		# compute the connected components
 		coords <- compute.internal.nodes(map,heat,explicit)
 
-		for(ix in 1:x){
-			for (iy in 1:y) {
+		for(ix in 1:x)
+        {
+			for (iy in 1:y)
+            {
 				cx <- coords$xcoords[ix,iy]
 				cy <- coords$ycoords[ix,iy]
 				points(c(ix,cx)-.5,c(iy,cy)-.5,type="l",col="grey")
@@ -547,20 +593,32 @@ plots.heat <- function(map,heat,explicit=FALSE,comp=TRUE) {
 
 	# put the labels on the map
 	# count the labels in each map cell
-	for(i in 1:nobs){
-		ix <- map$visual$x[i]
-		iy <- map$visual$y[i]
-		count[ix+1,iy+1] <- count[ix+1,iy+1]+1
+	for(i in 1:nobs)
+    {
+        nix <- map$visual[i]
+        c <- coordinate(map,nix)
+		ix <- c[1]
+		iy <- c[2]
+        
+		count[ix,iy] <- count[ix,iy]+1
 	}
-	
-	for(i in 1:nobs){
-		ix <- map$visual$x[i]
-		iy <- map$visual$y[i]
+    
+    #count.df <- data.frame(count)
+    #print(count.df)
+    
+	for(i in 1:nobs)
+    {
+        c <- coordinate(map,map$visual[i])
+        #cat("Coordinate of ",i," is ",c,"\n")
+        ix <- c[1]
+        iy <- c[2]
 		# we only print one label per cell
-		if (count[ix+1,iy+1] > 0) {
-			count[ix+1,iy+1] <- 0
-			ix <- ix + .5
-			iy <- iy + .5
+        # TODO: print out majority label
+		if (count[ix,iy] > 0)
+        {
+			count[ix,iy] <- 0
+			ix <- ix - .5
+			iy <- iy - .5
 			l <- labels[i,1]
 			text(ix,iy,labels=l)
 		}
@@ -578,70 +636,84 @@ plots.heat <- function(map,heat,explicit=FALSE,comp=TRUE) {
 # return value:
 # - a list containing the matrices with the same x-y dims as the original map containing the centroid x-y coordinates
 
-compute.internal.nodes <- function(map,heat,explicit=FALSE) {
+compute.internal.nodes <- function(map,heat,explicit=FALSE)
+{
 	xdim <- map$xdim
 	ydim <- map$ydim
 	x.coords <- array(data=-1,dim=c(xdim,ydim))
 	y.coords <- array(data=-1,dim=c(xdim,ydim))
 	max.val <- max(heat)
 	
-	find.internal.node <- function(ix,iy) {
-
+    ### recursive function to find the centroid of a point on the map
+	find.internal.node <- function(ix,iy)
+    {
 		# first we check if the current position is already associated
 		# with a centroid.  if so, simply return the coordinates
 		# of that centroid
-		if (x.coords[ix,iy] > -1 && y.coords[ix,iy] > -1) {
+		if (x.coords[ix,iy] > -1 && y.coords[ix,iy] > -1)
+        {
 			list(bestx=x.coords[ix,iy],besty=y.coords[ix,iy])
 		}
 
 		# try to find a smaller value in the immediate neighborhood
 		# make our current position the square with the minimum value.
-		# if a minimum value other that our own current value cannot be
+		# if a minimum value other than our own current value cannot be
 		# found then we are at a minimum.
 		#
 		# search the neighborhood; three different cases: inner element, corner element, side element
+        # TODO: there has to be a better way!
+        
 		min.val <- heat[ix,iy]
 		min.x <- ix
 		min.y <- iy
 		
 		# (ix,iy) is an inner map element
-		if (ix > 1 && ix < xdim && iy > 1 && iy < ydim) {
-			if (heat[ix-1,iy-1] < min.val) {
+		if (ix > 1 && ix < xdim && iy > 1 && iy < ydim)
+        {
+			if (heat[ix-1,iy-1] < min.val)
+            {
 				min.val <- heat[ix-1,iy-1]
 				min.x <- ix-1
 				min.y <- iy-1
 			}
-			if (heat[ix,iy-1] < min.val) {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy-1] < min.val) {
+			if (heat[ix+1,iy-1] < min.val)
+            {
 				min.val <- heat[ix+1,iy-1]
 				min.x <- ix+1
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy] < min.val) {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
 			}
-			if (heat[ix+1,iy+1] < min.val) {
+			if (heat[ix+1,iy+1] < min.val)
+            {
 				min.val <- heat[ix+1,iy+1]
 				min.x <- ix+1
 				min.y <- iy+1
 			}
-			if (heat[ix,iy+1] < min.val) {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy+1] < min.val) {
+			if (heat[ix-1,iy+1] < min.val)
+            {
 				min.val <- heat[ix-1,iy+1]
 				min.x <- ix-1
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -649,18 +721,22 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		} 
 		
 		# (ix,iy) is bottom left corner
-		else if (ix == 1 && iy == 1) {
-			if (heat[ix+1,iy] < min.val) {
+		else if (ix == 1 && iy == 1)
+        {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
 			}
-			if (heat[ix+1,iy+1] < min.val) {
+			if (heat[ix+1,iy+1] < min.val)
+            {
 				min.val <- heat[ix+1,iy+1]
 				min.x <- ix+1
 				min.y <- iy+1
 			}
-			if (heat[ix,iy+1] < min.val) {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
@@ -668,18 +744,22 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		}
 
 		# (ix,iy) is bottom right corner
-		else if (ix == xdim && iy == 1) {
-			if (heat[ix,iy+1] < min.val) {
+		else if (ix == xdim && iy == 1)
+        {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy+1] < min.val) {
+			if (heat[ix-1,iy+1] < min.val)
+            {
 				min.val <- heat[ix-1,iy+1]
 				min.x <- ix-1
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -687,18 +767,22 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		} 
 
 		# (ix,iy) is top right corner
-		else if (ix == xdim && iy == ydim) {
-			if (heat[ix-1,iy-1] < min.val) {
+		else if (ix == xdim && iy == ydim)
+        {
+			if (heat[ix-1,iy-1] < min.val)
+            {
 				min.val <- heat[ix-1,iy-1]
 				min.x <- ix-1
 				min.y <- iy-1
 			}
-			if (heat[ix,iy-1] < min.val) {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -706,18 +790,22 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		}
 
 		# (ix,iy) is top left corner
-		else if (ix == 1 && iy == ydim) {
-			if (heat[ix,iy-1] < min.val) {
+		else if (ix == 1 && iy == ydim)
+        {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy-1] < min.val) {
+			if (heat[ix+1,iy-1] < min.val)
+            {
 				min.val <- heat[ix+1,iy-1]
 				min.x <- ix+1
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy] < min.val) {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
@@ -725,28 +813,34 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		}
 		
 		# (ix,iy) is a left side element
-		else if (ix == 1  && iy > 1 && iy < ydim) {
-			if (heat[ix,iy-1] < min.val) {
+		else if (ix == 1  && iy > 1 && iy < ydim)
+        {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy-1] < min.val) {
+			if (heat[ix+1,iy-1] < min.val)
+            {
 				min.val <- heat[ix+1,iy-1]
 				min.x <- ix+1
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy] < min.val) {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
 			}
-			if (heat[ix+1,iy+1] < min.val) {
+			if (heat[ix+1,iy+1] < min.val)
+            {
 				min.val <- heat[ix+1,iy+1]
 				min.x <- ix+1
 				min.y <- iy+1
 			}
-			if (heat[ix,iy+1] < min.val) {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
@@ -754,28 +848,34 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		}
 		
 		# (ix,iy) is a bottom side element
-		else if (ix > 1 && ix < xdim && iy == 1 ) {
-			if (heat[ix+1,iy] < min.val) {
+		else if (ix > 1 && ix < xdim && iy == 1 )
+        {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
 			}
-			if (heat[ix+1,iy+1] < min.val) {
+			if (heat[ix+1,iy+1] < min.val)
+            {
 				min.val <- heat[ix+1,iy+1]
 				min.x <- ix+1
 				min.y <- iy+1
 			}
-			if (heat[ix,iy+1] < min.val) {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy+1] < min.val) {
+			if (heat[ix-1,iy+1] < min.val)
+            {
 				min.val <- heat[ix-1,iy+1]
 				min.x <- ix-1
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -783,28 +883,34 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		} 
 
 		# (ix,iy) is a right side element
-		else if (ix == xdim && iy > 1 && iy < ydim) {
-			if (heat[ix-1,iy-1] < min.val) {
+		else if (ix == xdim && iy > 1 && iy < ydim)
+        {
+			if (heat[ix-1,iy-1] < min.val)
+            {
 				min.val <- heat[ix-1,iy-1]
 				min.x <- ix-1
 				min.y <- iy-1
 			}
-			if (heat[ix,iy-1] < min.val) {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix,iy+1] < min.val) {
+			if (heat[ix,iy+1] < min.val)
+            {
 				min.val <- heat[ix,iy+1]
 				min.x <- ix
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy+1] < min.val) {
+			if (heat[ix-1,iy+1] < min.val)
+            {
 				min.val <- heat[ix-1,iy+1]
 				min.x <- ix-1
 				min.y <- iy+1
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -812,28 +918,34 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		} 
 		
 		# (ix,iy) is a top side element
-		else if (ix > 1 && ix < xdim && iy == ydim) {
-			if (heat[ix-1,iy-1] < min.val) {
+		else if (ix > 1 && ix < xdim && iy == ydim)
+        {
+			if (heat[ix-1,iy-1] < min.val)
+            {
 				min.val <- heat[ix-1,iy-1]
 				min.x <- ix-1
 				min.y <- iy-1
 			}
-			if (heat[ix,iy-1] < min.val) {
+			if (heat[ix,iy-1] < min.val)
+            {
 				min.val <- heat[ix,iy-1]
 				min.x <- ix
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy-1] < min.val) {
+			if (heat[ix+1,iy-1] < min.val)
+            {
 				min.val <- heat[ix+1,iy-1]
 				min.x <- ix+1
 				min.y <- iy-1
 			}
-			if (heat[ix+1,iy] < min.val) {
+			if (heat[ix+1,iy] < min.val)
+            {
 				min.val <- heat[ix+1,iy]
 				min.x <- ix+1
 				min.y <- iy
 			}
-			if (heat[ix-1,iy] < min.val) {
+			if (heat[ix-1,iy] < min.val)
+            {
 				min.val <- heat[ix-1,iy]
 				min.x <- ix-1
 				min.y <- iy
@@ -844,18 +956,21 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		# move to the square with the smaller value, i.e., call find.internal.node on this new square
 		# note the RETURNED x-y coords in the x.coords and y.coords matrix at the current location
 		# return the RETURNED x-y coordinates
-		if (min.x != ix || min.y != iy) {
+		if (min.x != ix || min.y != iy)
+        {
 			r.val <- find.internal.node(min.x,min.y)
 
 			# if explicit is set show the exact connected component
 			# otherwise construct a connected componenent where all
 			# nodes are connected to a centrol node
-			if (explicit) {
+			if (explicit)
+            {
 				x.coords[ix,iy] <<- min.x
 				y.coords[ix,iy] <<- min.y
 				list(bestx=min.x,besty=min.y)
 			}
-			else {
+			else
+            {
 				x.coords[ix,iy] <<- r.val$bestx
 				y.coords[ix,iy] <<- r.val$besty
 				r.val
@@ -865,16 +980,19 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 		# we have found a minimum
 		# note the current x-y in the x.coords and y.coords matrix
 		# return the current x-y coordinates
-		else {
+		else
+        {
 			x.coords[ix,iy] <<- ix
 			y.coords[ix,iy] <<- iy
 			list(bestx=ix,besty=iy)
 		}
 	} # end function find.internal.node
 
-	# iterate over the map and find the centroid for each element
-	for (i in 1:xdim) {
-		for (j in 1:ydim) {
+	### iterate over the map and find the centroid for each element
+	for (i in 1:xdim)
+    {
+		for (j in 1:ydim)
+        {
 			find.internal.node(i,j)
 		}
 	}
@@ -891,34 +1009,12 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE) {
 # return value:
 # - a matrix with the same x-y dims as the original map containing the umat values
 
-compute.umat <- function(map,smoothing=NULL) {
-
-	d <- dist(data.frame(map$code))
+compute.umat <- function(map,smoothing=NULL)
+{
+	d <- dist(data.frame(map$neurons))
 	umat <- compute.heat(map,d,smoothing)
 	
 	umat
-}
-
-### compute.plane -- compute the heat matrix of a plane
-# parameters:
-# - map is an object if type 'map'
-# - plane is a plane index
-# - smoothing is either NULL, 0, or a positive floating point value controlling the 
-#         smoothing of the umat representation
-# return value:
-# - a matrix with the same x-y dims as the original map containing the umat values
-
-compute.plane <- function(map,plane,smoothing=NULL) {
-
-	map.df <- data.frame(map$code)
-
-	if (plane < 1 && plane > ncol(map.df))
-	   stop("compute.plane: bad plane index")
-
-	d <- dist(map.df[[plane]])
-	heat <- compute.heat(map,d,smoothing)
-	
-	heat
 }
 
 ### compute.heat -- compute a heat value map representation of the given distance matrix
@@ -930,9 +1026,9 @@ compute.plane <- function(map,plane,smoothing=NULL) {
 # return value:
 # - a matrix with the same x-y dims as the original map containing the heat
 
-compute.heat <- function(map,d,smoothing=NULL) {
-
-	d <- as.matrix(d)
+compute.heat <- function(map,d.in,smoothing=NULL)
+{
+	d <- as.matrix(d.in)
 	x <- map$xdim
 	y <- map$ydim
 	heat <- array(data=0,dim=c(x,y))
@@ -941,117 +1037,125 @@ compute.heat <- function(map,d,smoothing=NULL) {
 		stop("compute.heat: heat map can not be computed for a map with a dimension of 1")
 
 	# this function translates our 2-dim map coordinates
-	# into the 1-dim coordinates of the code vector
-	xl <- function(ix,iy,xdim) {
-	#cat("converting (",ix,",",iy,") to row", ix + (iy-1) *xdim,"\n")
-		ix + (iy-1) * xdim
+	# into the 1-dim coordinates of the neurons
+	xl <- function(ix,iy)
+    {
+        #cat("converting (",ix,",",iy,") to row", ix + (iy-1) *xdim,"\n")
+		ix + (iy-1) * x
 	}
 
 	# check if the map is larger than 2 x 2 (otherwise it is only corners)
-	if (x > 2 && y > 2) {
-
+	if (x > 2 && y > 2)
+    {
 		# iterate over the inner nodes and compute their umat values
-		for (ix in 2:(x-1)) {
-			for (iy in 2:(y-1)) {
+		for (ix in 2:(x-1))
+        {
+			for (iy in 2:(y-1))
+            {
 				sum <- 
-					   d[xl(ix,iy,x),xl(ix-1,iy-1,x)] +
-					   d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-					   d[xl(ix,iy,x),xl(ix+1,iy-1,x)] +
-					   d[xl(ix,iy,x),xl(ix+1,iy,x)] +
-					   d[xl(ix,iy,x),xl(ix+1,iy+1,x)] +
-					   d[xl(ix,iy,x),xl(ix,iy+1,x)] +
-					   d[xl(ix,iy,x),xl(ix-1,iy+1,x)] +
-					   d[xl(ix,iy,x),xl(ix-1,iy,x)]
+					   d[xl(ix,iy),xl(ix-1,iy-1)] +
+					   d[xl(ix,iy),xl(ix,iy-1)] +
+					   d[xl(ix,iy),xl(ix+1,iy-1)] +
+					   d[xl(ix,iy),xl(ix+1,iy)] +
+					   d[xl(ix,iy),xl(ix+1,iy+1)] +
+					   d[xl(ix,iy),xl(ix,iy+1)] +
+					   d[xl(ix,iy),xl(ix-1,iy+1)] +
+					   d[xl(ix,iy),xl(ix-1,iy)]
 				heat[ix,iy] <- sum/8
 			}
 		
 		}	
 	
 		# iterate over bottom x axis
-		for (ix in 2:(x-1)) {
+		for (ix in 2:(x-1))
+        {
 			iy <- 1
 			sum <- 
-				   d[xl(ix,iy,x),xl(ix+1,iy,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix-1,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix-1,iy,x)]
+				   d[xl(ix,iy),xl(ix+1,iy)] +
+				   d[xl(ix,iy),xl(ix+1,iy+1)] +
+				   d[xl(ix,iy),xl(ix,iy+1)] +
+				   d[xl(ix,iy),xl(ix-1,iy+1)] +
+				   d[xl(ix,iy),xl(ix-1,iy)]
 			heat[ix,iy] <- sum/5
 		}
 	
 		# iterate over top x axis
-		for (ix in 2:(x-1)) {
+		for (ix in 2:(x-1))
+        {
 			iy <- y
 			sum <- 
-				   d[xl(ix,iy,x),xl(ix-1,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy,x)] +
-				   d[xl(ix,iy,x),xl(ix-1,iy,x)]
+				   d[xl(ix,iy),xl(ix-1,iy-1)] +
+				   d[xl(ix,iy),xl(ix,iy-1)] +
+				   d[xl(ix,iy),xl(ix+1,iy-1)] +
+				   d[xl(ix,iy),xl(ix+1,iy)] +
+				   d[xl(ix,iy),xl(ix-1,iy)]
 			heat[ix,iy] <- sum/5
 		}
 	
 		# iterate over the left y-axis
-		for (iy in 2:(y-1)) {
+		for (iy in 2:(y-1))
+        {
 			ix <- 1
 			sum <- 
-				   d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy,x)] +
-				   d[xl(ix,iy,x),xl(ix+1,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix,iy+1,x)] 
+				   d[xl(ix,iy),xl(ix,iy-1)] +
+				   d[xl(ix,iy),xl(ix+1,iy-1)] +
+				   d[xl(ix,iy),xl(ix+1,iy)] +
+				   d[xl(ix,iy),xl(ix+1,iy+1)] +
+				   d[xl(ix,iy),xl(ix,iy+1)] 
 			heat[ix,iy] <- sum/5
 		}
 	
 		# iterate over the right y-axis
-		for (iy in 2:(y-1)) {
+		for (iy in 2:(y-1))
+        {
 			ix <- x
 			sum <- 
-				   d[xl(ix,iy,x),xl(ix-1,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-				   d[xl(ix,iy,x),xl(ix,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix-1,iy+1,x)] +
-				   d[xl(ix,iy,x),xl(ix-1,iy,x)]
+				   d[xl(ix,iy),xl(ix-1,iy-1)] +
+				   d[xl(ix,iy),xl(ix,iy-1)] +
+				   d[xl(ix,iy),xl(ix,iy+1)] +
+				   d[xl(ix,iy),xl(ix-1,iy+1)] +
+				   d[xl(ix,iy),xl(ix-1,iy)]
 			heat[ix,iy] <- sum/5
 		}
 	} # end if
 	
 	# compute umat values for corners
-	if (x >= 2 && y >= 2) {		
+	if (x >= 2 && y >= 2)
+    {
 		# bottom left corner
 		ix <- 1
 		iy <- 1
 		sum <- 
-				d[xl(ix,iy,x),xl(ix+1,iy,x)] +
-				d[xl(ix,iy,x),xl(ix+1,iy+1,x)] +
-				d[xl(ix,iy,x),xl(ix,iy+1,x)] 
+				d[xl(ix,iy),xl(ix+1,iy)] +
+				d[xl(ix,iy),xl(ix+1,iy+1)] +
+				d[xl(ix,iy),xl(ix,iy+1)] 
 		heat[ix,iy] <- sum/3
 
 		# bottom right corner
 		ix <- x
 		iy <- 1
 		sum <- 
-			   d[xl(ix,iy,x),xl(ix,iy+1,x)] +
-			   d[xl(ix,iy,x),xl(ix-1,iy+1,x)] +
-			   d[xl(ix,iy,x),xl(ix-1,iy,x)]
+			   d[xl(ix,iy),xl(ix,iy+1)] +
+			   d[xl(ix,iy),xl(ix-1,iy+1)] +
+			   d[xl(ix,iy),xl(ix-1,iy)]
 		heat[ix,iy] <- sum/3
 
 		# top left corner
 		ix <- 1
 		iy <- y
 		sum <- 
-				d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-				d[xl(ix,iy,x),xl(ix+1,iy-1,x)] +
-				d[xl(ix,iy,x),xl(ix+1,iy,x)] 
+				d[xl(ix,iy),xl(ix,iy-1)] +
+				d[xl(ix,iy),xl(ix+1,iy-1)] +
+				d[xl(ix,iy),xl(ix+1,iy)] 
 		heat[ix,iy] <- sum/3
 
 		# top right corner
 		ix <- x
 		iy <- y
 		sum <- 
-				d[xl(ix,iy,x),xl(ix-1,iy-1,x)] +
-				d[xl(ix,iy,x),xl(ix,iy-1,x)] +
-				d[xl(ix,iy,x),xl(ix-1,iy,x)]
+				d[xl(ix,iy),xl(ix-1,iy-1)] +
+				d[xl(ix,iy),xl(ix,iy-1)] +
+				d[xl(ix,iy),xl(ix-1,iy)]
 		heat[ix,iy] <- sum/3
 	} # end if
 	
@@ -1084,10 +1188,10 @@ compute.heat <- function(map,d,smoothing=NULL) {
 # - df1,df2 - data frames with the same number of columns
 # - conf - confidence level for the F-test (default .95)
 
-df.var.test <- function(df1,df2,conf = .95) {
-    
+df.var.test <- function(df1,df2,conf = .95)
+{
 	if (length(df1) != length(df2))
-    stop("df.var.test: cannot compare variances of data frames")
+        stop("df.var.test: cannot compare variances of data frames")
     
 	# init our working arrays
 	var.ratio.v <- array(data=1,dim=length(df1))
@@ -1095,7 +1199,8 @@ df.var.test <- function(df1,df2,conf = .95) {
 	var.confinthi.v <- array(data=1,dim=length(df1))
 	
 	# compute the F-test on each feature in our populations
-	for (i in 1:length(df1)) {
+	for (i in 1:length(df1))
+    {
 		t <- var.test(df1[[i]],df2[[i]],conf.level=conf)
 		var.ratio.v[i] <- t$estimate
 		#cat("Feature",i,"confidence interval =",t$conf.int,"\n")
@@ -1113,10 +1218,10 @@ df.var.test <- function(df1,df2,conf = .95) {
 # - df1,df2 - data frames with the same number of columns
 # - conf - confidence level for the t-test (default .95)
 
-df.mean.test <- function(df1,df2,conf = .95) {
-    
+df.mean.test <- function(df1,df2,conf = .95)
+{
 	if (ncol(df1) != ncol(df2))
-    stop("df.mean.test: cannot compare means of data frames")
+        stop("df.mean.test: cannot compare means of data frames")
     
 	# init our working arrays
 	mean.diff.v <- array(data=1,dim=ncol(df1))
@@ -1135,3 +1240,172 @@ df.mean.test <- function(df1,df2,conf = .95) {
 	# return a list with the mean differences and conf intervals for each feature
 	list(diff=mean.diff.v,conf.int.lo=mean.confintlo.v,conf.int.hi=mean.confinthi.v)
 }
+
+### vsom - vectorized version of the online SOM training algorithm
+
+### debugging:
+# vsom.debug == 1: simple debugging messages
+# vsom.debug == 2: cache debugging messages
+vsom.debug <- 0
+
+vsom <- function(data,xdim,ydim,alpha,train)
+{
+    
+    if (vsom.debug)
+        cat("VSOM...\n")
+    
+    ### some constants
+    dr <- nrow(data)
+    dc <- ncol(data)
+    nr <- xdim*ydim
+    nc <- dc # dim of data and neurons is the same
+    
+    ### build and initialize the matrix holding the neurons
+    cells <- nr * nc        # no. of neurons times number of data dimensions
+    v <- runif(cells,-1,1)  # vector with small init values for all neurons
+    # NOTE: each row represents a neuron, each column represents a dimension.
+    neurons <- matrix(v,nrow=nr,ncol=nc)  # rearrange the vector as matrix
+    
+    ### compute the initial neighborhood size and step
+    #nsize <- ceiling(sqrt(xdim^2 + ydim^2))
+    nsize <- max(xdim,ydim) + 1
+    nsize.step <- ceiling(train/nsize)
+    
+    ### set up neighborhood cache
+    # NOTE: each row represents a neighborhood vector for a particular neuron
+    cache.valid <- as.vector(matrix(FALSE,nr,1))
+    cache <- matrix(0,nrow=nr,ncol=nr)
+    cache.counter <- 0
+    
+    ### neighborhood function
+    Gamma <- function(c)
+    {
+        ### build a neighborhood vector in the xdim direction
+        build.xvector <- function()
+        {
+            v <- as.vector(matrix(0,xdim,1))
+            
+            x.lb <- if (xc - nsize + 1 < 1) 1 else xc - nsize + 1
+            x.ub <- if (xc + nsize - 1 > xdim) xdim else xc + nsize - 1
+            
+            for (i in x.lb:x.ub)
+            {
+                v[i] <- 1
+            }
+            
+            return (v)
+        }
+
+        ### convert the 1D neuron index into a 2D map index
+        xc <- (c-1) %% xdim + 1
+        yc <- (c-1) %/% xdim + 1
+        
+        ### if we have the neighborhood cached - return
+        if (cache.valid[c])
+        {
+            if (vsom.debug == 2)
+                cat("Cache hit",xc,yc,"\n")
+                
+            return(cache[c,])
+        }
+        
+        ### take care of simple cases
+        if (nsize >= xdim && nsize >= ydim)
+        {
+            cache[c,] <<- 1
+            
+            if (vsom.debug == 2)
+            {
+                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
+                print(data.frame(matrix(cache[c,],xdim,ydim)))
+                invisible(readline(prompt="Press [enter] to continue"))
+            }
+        }
+        else if (nsize >= ydim)
+        {
+            x.v <- build.xvector()
+            cache[c,] <<- x.v
+
+            if (vsom.debug == 2)
+            {
+                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
+                print(data.frame(matrix(cache[c,],xdim,ydim)))
+                invisible(readline(prompt="Press [enter] to continue"))
+            }
+        }
+        else
+        {
+            ### full blown neighborhood construction
+            neigh.temp <- matrix(0,xdim,ydim)
+            x.v <- build.xvector()
+            
+            y.lb <- if (yc - nsize + 1 < 1) 1 else yc - nsize + 1
+            y.ub <- if (yc + nsize - 1 > ydim) ydim else yc + nsize - 1
+            
+            for (i in y.lb:y.ub)
+            {
+                neigh.temp[,i] <- x.v
+            }
+            
+            if (vsom.debug == 2)
+            {
+                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
+                print(data.frame(neigh.temp))
+                invisible(readline(prompt="Press [enter] to continue"))
+            }
+            
+            ### convert the 2D neighborhood into a 1D neighborhood vector
+            cache[c,] <<- as.vector(matrix(neigh.temp,nr,1))
+        }
+        
+        ### cache it
+        cache.valid[c] <<- TRUE
+        
+        ### return it
+        return (cache[c,])
+    }
+    
+    ### training ###
+    ### the epochs loop
+    for (epoch in 1:train)
+    {
+        if (vsom.debug) cat("Epoch",epoch,"Neighborbood",nsize,"\n")
+        
+        cache.counter <- cache.counter + 1
+        if (cache.counter == nsize.step)
+        {
+            cache.counter <- 0
+            nsize <- nsize - 1
+            cache.valid <- as.vector(matrix(FALSE,nr,1))  # clear the cache
+        }
+        
+        ### run through the training set
+        for (k in 1:nr)
+        {
+            xk <- as.numeric(data[k,])
+            
+            ### competitive step
+            # NOTE: this should
+            xk.m <- matrix(xk,nr,nc,byrow=TRUE)
+            diff <- neurons - xk.m
+            squ <- diff * diff
+            s <- rowSums(squ)
+            d <- sqrt(s)
+            o <- order(d)
+            c <- o[1]
+            
+            ### update step
+            # Gamma returns a vector which tells us which neurons are active
+            # during the update step - we need to replicate this vector for
+            # all dimensions.  Hint: length(Gamma(c)) == nr
+            #gamma.m <- matrix(Gamma(c),nr,nc)
+            #neurons <- neurons - alpha * diff * gamma.m
+            neurons <- neurons - Gamma(c) * alpha * diff # R is column major so we can get away with this
+        }
+    }
+
+    return(neurons)
+}
+
+
+
