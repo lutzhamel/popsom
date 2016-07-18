@@ -1,4 +1,4 @@
-### map-utils.r 
+### map-utils.R
 # version 4.0
 # (c) 2009-2016 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #
@@ -74,27 +74,25 @@ require(graphics)
 # - xdim,ydim - the dimensions of the map
 # - alpha - the learning rate, should be a positive non-zero real number
 # - train - number of training iterations
+# - algorithm - selection switch
 # retuns:
-# - an object of type 'map'
+# - an object of type 'map' -- see below
 
-# Hint: if your training data does not have any labels you can construct
-#       simple label vector as follows: labels <- 1:nrow(training.data)
+# Hint: if your training data does not have any labels you can construct a
+#       simple label dataframe as follows: labels <- data.frame(1:nrow(training.data))
 
 map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000,algorithm="som")
 {
-    # NOTE: vsom is an experimental implementation of a vectorized SOM training algorithm
     
-    algorithm.init = c("som","vsom") # som == 1, vsom == 2
+    # pmatch: som == 1, vsom == 2, experimental == 3, kohonen == 4
+    algorithms = c("som","vsom","experimental","kohonen")
     
-    if (!pmatch(algorithm,algorithm.init,nomatch=0))
-        stop("map.build only supports 'som' and 'vsom'")
-        
 	# check if the dims are reasonable
 	if (xdim < 3 || ydim < 3)
 		stop("map.build: map is too small.")
 	
     # train the map - returns a list of neurons
-    if (pmatch(algorithm,"som",nomatch=0) == 1)
+    if (pmatch(algorithm,algorithms,nomatch=0) == 1) # som
     {
         # compute the initial neighborhood radius
         r <- sqrt(xdim^2 + ydim^2)
@@ -110,17 +108,52 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000,algori
                  radius=c(r,r),
                  rlen=c(1,train))
         
-        # the som package does something really annoying with attributes
-        # we get rid of that by casting the neurons as a new matrix
+        # the 'som' package does something really annoying with attributes
+        # for the neuron matrix, we get rid of that by casting the neurons
+        # as a new matrix
         neurons <- matrix(m$code,xdim*ydim,ncol(data))
+    }
+    else if (pmatch(algorithm,algorithms,nomatch=0) == 2) # vsom
+    {
+        neurons <- vsom.f(data,
+                          xdim=xdim,
+                          ydim=ydim,
+                          alpha=alpha,
+                          train=train)
+    }
+    else if (pmatch(algorithm,algorithms,nomatch=0) == 3) # experimental
+    {
+        neurons <- vsom.r(data,
+                          xdim=xdim,
+                          ydim=ydim,
+                          alpha=alpha,
+                          train=train)
+    }
+    else if (pmatch(algorithm,algorithms,nomatch=0) == 4) # kohonen
+    {
+        # load the correct support library
+        library(kohonen,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
+
+        # compute the initial neighborhood radius
+        r <- sqrt(xdim^2 + ydim^2)
+
+        m <- som(data.matrix(data),
+                 grid=somgrid(xdim,ydim,"rectangular"),
+                 alpha=c(alpha,0.01),
+                 radius=c(r,0),
+                 n.hood="square",
+                 toroidal=FALSE,
+                 rlen=train)
+        
+        # extract the neurons
+        neurons <- matrix(as.numeric(m$codes),xdim*ydim,ncol(data))
+        
+        # unload the kohonen package
+        detach(name=package:kohonen,unload=TRUE)
     }
     else
     {
-        neurons <- vsom(data,
-                        xdim=xdim,
-                        ydim=ydim,
-                        alpha=alpha,
-                        train=train)
+        stop("map.build only supports 'som','vsom','experimental',and 'kohonen'")
     }
     
     ### construct the map object
@@ -157,15 +190,20 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000,algori
 # - map is an object if type 'map'
 # - conf.int is the confidence interval of the quality assessment (default 95%)
 # - k is the number of samples used for the estimated topographic accuracy computation
+# - verb if true reports the two convergence components separately, otherwise it will
+#        report the linear combination of the two
 #
 # - return value is the convergence index
 
-map.convergence <- function(map,conf.int=.95,k=50)
+map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE)
 {
     embedding <- map.embedding(map,conf.int,verb=FALSE)
     accuracy <- map.accuracy(map,k,conf.int,verb=FALSE,interval=FALSE)
     
-    return (0.5*embedding + 0.5*accuracy)
+    if (verb)
+        return (list(embedding=embedding,accuracy=accuracy))
+    else
+        return (0.5*embedding + 0.5*accuracy)
 }
 
 ### map.embedding - evaluate the embedding of a map using the F-test and
@@ -527,25 +565,24 @@ map.graphics.reset <- function(par.vector) {
 
 plot.heat <- function(map,heat,explicit=FALSE,comp=TRUE)
 {
-	if (is.null(map$labels))
-		stop("plot.heat: no labels available")
-
-    labels <- map$labels
 	x <- map$xdim
 	y <- map$ydim
 	nobs <- nrow(map$data)
 	count <- array(data=0,dim=c(x,y))
 
-	# need to make sure the map doesn't have a dimension of 1
-	if (x > 1 && y > 1)
+	### need to make sure the map doesn't have a dimension of 1
+	if (x <= 1 || y <= 1)
     {
-		# bin the heat values into 100 bins used for the 100 heat colors below
-		heat.v <- as.vector(heat)
-		heat.v <- cut(heat.v,breaks=100,labels=FALSE)
-		heat <- array(data=heat.v,dim=c(x,y))
-	}
+        stop("plot.heat: map dimensions too small")
+    }
+    
+    ### bin the heat values into 100 bins used for the 100 heat colors
+    heat.v <- as.vector(heat)
+    heat.v <- cut(heat.v,breaks=100,labels=FALSE)
+    heat <- array(data=heat.v,dim=c(x,y))
+    colors<- heat.colors(100)
 
-	# set up the graphics window
+	### set up the graphics window
 	par.v <- map.graphics.set()
 	plot.new()
 	plot.window(xlim=c(0,x),ylim=c(0,y))
@@ -562,7 +599,6 @@ plot.heat <- function(map,heat,explicit=FALSE,comp=TRUE)
 	axis(2,at=yticks,labels=ylabels)
 	axis(4,at=yticks,labels=ylabels)
 		
-	colors<- heat.colors(100)
 	
     ### plot the neurons as heat squares on the map
     # TODO: vectorize this - rect can operate on vectors of coordinates and values
@@ -577,58 +613,62 @@ plot.heat <- function(map,heat,explicit=FALSE,comp=TRUE)
 	### put the connected component lines on the map
 	if (comp)
     {
-		# compute the connected components
-		coords <- compute.internal.nodes(map,heat,explicit)
+		# find the centroid for each neuron on the map
+		centroids <- compute.centroids(map,heat,explicit)
 
+        # connect each neuron to its centroid
 		for(ix in 1:x)
         {
 			for (iy in 1:y)
             {
-				cx <- coords$xcoords[ix,iy]
-				cy <- coords$ycoords[ix,iy]
+				cx <- centroids$centroid.x[ix,iy]
+				cy <- centroids$centroid.y[ix,iy]
 				points(c(ix,cx)-.5,c(iy,cy)-.5,type="l",col="grey")
 			}
 		}
 	}
 
-	# put the labels on the map
-	# count the labels in each map cell
-	for(i in 1:nobs)
+	### put the labels on the map if available
+    if (!is.null(map$labels))
     {
-        nix <- map$visual[i]
-        c <- coordinate(map,nix)
-		ix <- c[1]
-		iy <- c[2]
-        
-		count[ix,iy] <- count[ix,iy]+1
-	}
-    
-    #count.df <- data.frame(count)
-    #print(count.df)
-    
-	for(i in 1:nobs)
-    {
-        c <- coordinate(map,map$visual[i])
-        #cat("Coordinate of ",i," is ",c,"\n")
-        ix <- c[1]
-        iy <- c[2]
-		# we only print one label per cell
-        # TODO: print out majority label
-		if (count[ix,iy] > 0)
+        # count the labels in each map cell
+        for(i in 1:nobs)
         {
-			count[ix,iy] <- 0
-			ix <- ix - .5
-			iy <- iy - .5
-			l <- labels[i,1]
-			text(ix,iy,labels=l)
-		}
-	}
+            nix <- map$visual[i]
+            c <- coordinate(map,nix)
+            ix <- c[1]
+            iy <- c[2]
+            
+            count[ix,iy] <- count[ix,iy]+1
+        }
+        
+        #count.df <- data.frame(count)
+        #print(count.df)
+        
+        for(i in 1:nobs)
+        {
+            c <- coordinate(map,map$visual[i])
+            #cat("Coordinate of ",i," is ",c,"\n")
+            ix <- c[1]
+            iy <- c[2]
+            # we only print one label per cell
+            # TODO: print out majority label
+            if (count[ix,iy] > 0)
+            {
+                count[ix,iy] <- 0
+                ix <- ix - .5
+                iy <- iy - .5
+                l <- map$labels[i,1]
+                text(ix,iy,labels=l)
+            }
+        }
+    }
 
 	map.graphics.reset(par.v)
 }
 
 
-### compute.internal.nodes -- compute the centroid for each point on the map
+### compute.centroids -- compute the centroid for each point on the map
 # parameters:
 # - map is an object if type 'map'
 # - heat is a matrix representing the heat map representation
@@ -636,23 +676,23 @@ plot.heat <- function(map,heat,explicit=FALSE,comp=TRUE)
 # return value:
 # - a list containing the matrices with the same x-y dims as the original map containing the centroid x-y coordinates
 
-compute.internal.nodes <- function(map,heat,explicit=FALSE)
+compute.centroids <- function(map,heat,explicit=FALSE)
 {
 	xdim <- map$xdim
 	ydim <- map$ydim
-	x.coords <- array(data=-1,dim=c(xdim,ydim))
-	y.coords <- array(data=-1,dim=c(xdim,ydim))
+	centroid.x <- array(data=-1,dim=c(xdim,ydim))
+	centroid.y <- array(data=-1,dim=c(xdim,ydim))
 	max.val <- max(heat)
 	
     ### recursive function to find the centroid of a point on the map
-	find.internal.node <- function(ix,iy)
+	compute.centroid <- function(ix,iy)
     {
 		# first we check if the current position is already associated
 		# with a centroid.  if so, simply return the coordinates
 		# of that centroid
-		if (x.coords[ix,iy] > -1 && y.coords[ix,iy] > -1)
+		if (centroid.x[ix,iy] > -1 && centroid.y[ix,iy] > -1)
         {
-			list(bestx=x.coords[ix,iy],besty=y.coords[ix,iy])
+			list(bestx=centroid.x[ix,iy],besty=centroid.y[ix,iy])
 		}
 
 		# try to find a smaller value in the immediate neighborhood
@@ -953,51 +993,51 @@ compute.internal.nodes <- function(map,heat,explicit=FALSE)
 		} 
 
 		#if successful
-		# move to the square with the smaller value, i.e., call find.internal.node on this new square
-		# note the RETURNED x-y coords in the x.coords and y.coords matrix at the current location
+		# move to the square with the smaller value, i.e., call compute.centroid on this new square
+		# note the RETURNED x-y coords in the centroid.x and centroid.y matrix at the current location
 		# return the RETURNED x-y coordinates
 		if (min.x != ix || min.y != iy)
         {
-			r.val <- find.internal.node(min.x,min.y)
+			r.val <- compute.centroid(min.x,min.y)
 
 			# if explicit is set show the exact connected component
 			# otherwise construct a connected componenent where all
 			# nodes are connected to a centrol node
 			if (explicit)
             {
-				x.coords[ix,iy] <<- min.x
-				y.coords[ix,iy] <<- min.y
+				centroid.x[ix,iy] <<- min.x
+				centroid.y[ix,iy] <<- min.y
 				list(bestx=min.x,besty=min.y)
 			}
 			else
             {
-				x.coords[ix,iy] <<- r.val$bestx
-				y.coords[ix,iy] <<- r.val$besty
+				centroid.x[ix,iy] <<- r.val$bestx
+				centroid.y[ix,iy] <<- r.val$besty
 				r.val
 			}
 		}
 		#else
 		# we have found a minimum
-		# note the current x-y in the x.coords and y.coords matrix
+		# note the current x-y in the centroid.x and centroid.y matrix
 		# return the current x-y coordinates
 		else
         {
-			x.coords[ix,iy] <<- ix
-			y.coords[ix,iy] <<- iy
+			centroid.x[ix,iy] <<- ix
+			centroid.y[ix,iy] <<- iy
 			list(bestx=ix,besty=iy)
 		}
-	} # end function find.internal.node
+	} # end function compute.centroid
 
 	### iterate over the map and find the centroid for each element
 	for (i in 1:xdim)
     {
 		for (j in 1:ydim)
         {
-			find.internal.node(i,j)
+			compute.centroid(i,j)
 		}
 	}
 	
-	list(xcoords=x.coords,ycoords=y.coords)
+	list(centroid.x=centroid.x,centroid.y=centroid.y)
 }
 
 
@@ -1241,18 +1281,21 @@ df.mean.test <- function(df1,df2,conf = .95)
 	list(diff=mean.diff.v,conf.int.lo=mean.confintlo.v,conf.int.hi=mean.confinthi.v)
 }
 
-### vsom - vectorized version of the online SOM training algorithm
+### vsom.r - vectorized version of the online SOM training algorithm written entirely in R
 
 ### debugging:
-# vsom.debug == 1: simple debugging messages
-# vsom.debug == 2: cache debugging messages
-vsom.debug <- 0
+# vsom.r.debug == 1: simple debugging messages
+# vsom.r.debug == 2: cache debugging messages
+vsom.r.debug <- 0
 
-vsom <- function(data,xdim,ydim,alpha,train)
+vsom.r <- function(data,xdim,ydim,alpha,train)
 {
     
-    if (vsom.debug)
+    if (vsom.r.debug)
+    {
+        sink("vsom-debug.txt")
         cat("VSOM...\n")
+    }
     
     ### some constants
     dr <- nrow(data)
@@ -1303,34 +1346,36 @@ vsom <- function(data,xdim,ydim,alpha,train)
         ### if we have the neighborhood cached - return
         if (cache.valid[c])
         {
-            if (vsom.debug == 2)
-                cat("Cache hit",xc,yc,"\n")
-                
-            return(cache[c,])
+            if (vsom.r.debug > 1)
+            cat("Cache hit",xc,yc,"\n")
+            
+            return(cache[,c])
         }
         
         ### take care of simple cases
         if (nsize >= xdim && nsize >= ydim)
         {
-            cache[c,] <<- 1
+            cache[,c] <<- 1
             
-            if (vsom.debug == 2)
+            if (vsom.r.debug > 1)
             {
-                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
-                print(data.frame(matrix(cache[c,],xdim,ydim)))
-                invisible(readline(prompt="Press [enter] to continue"))
+                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
+                print(as.vector(cache[,c]))
+                print(data.frame(matrix(cache[,c],xdim,ydim)))
+                #invisible(readline(prompt="Press [enter] to continue"))
             }
         }
         else if (nsize >= ydim)
         {
             x.v <- build.xvector()
-            cache[c,] <<- x.v
+            cache[,c] <<- x.v
 
-            if (vsom.debug == 2)
+            if (vsom.r.debug > 1)
             {
-                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
-                print(data.frame(matrix(cache[c,],xdim,ydim)))
-                invisible(readline(prompt="Press [enter] to continue"))
+                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
+                print(as.vector(cache[,c]))
+                print(data.frame(matrix(cache[,c],xdim,ydim)))
+                #invisible(readline(prompt="Press [enter] to continue"))
             }
         }
         else
@@ -1347,29 +1392,30 @@ vsom <- function(data,xdim,ydim,alpha,train)
                 neigh.temp[,i] <- x.v
             }
             
-            if (vsom.debug == 2)
-            {
-                cat("Neighborhood of ",xc,yc,"Nsize",nsize,"\n")
-                print(data.frame(neigh.temp))
-                invisible(readline(prompt="Press [enter] to continue"))
-            }
-            
             ### convert the 2D neighborhood into a 1D neighborhood vector
-            cache[c,] <<- as.vector(matrix(neigh.temp,nr,1))
+            cache[,c] <<- as.vector(matrix(neigh.temp,nr,1))
+            
+            if (vsom.r.debug > 1)
+            {
+                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
+                print(as.vector(cache[,c]))
+                print(data.frame(matrix(cache[,c],xdim,ydim)))
+                #invisible(readline(prompt="Press [enter] to continue"))
+            }
         }
         
         ### cache it
         cache.valid[c] <<- TRUE
         
         ### return it
-        return (cache[c,])
+        return (cache[,c])
     }
     
     ### training ###
     ### the epochs loop
     for (epoch in 1:train)
     {
-        if (vsom.debug) cat("Epoch",epoch,"Neighborbood",nsize,"\n")
+        if (vsom.r.debug) cat("Epoch",epoch,"Neighborbood",nsize,"\n")
         
         cache.counter <- cache.counter + 1
         if (cache.counter == nsize.step)
@@ -1380,32 +1426,72 @@ vsom <- function(data,xdim,ydim,alpha,train)
         }
         
         ### run through the training set
-        for (k in 1:nr)
+        for (k in 1:dr)
         {
             xk <- as.numeric(data[k,])
             
             ### competitive step
-            # NOTE: this should
             xk.m <- matrix(xk,nr,nc,byrow=TRUE)
             diff <- neurons - xk.m
             squ <- diff * diff
             s <- rowSums(squ)
-            d <- sqrt(s)
-            o <- order(d)
+            o <- order(s)
             c <- o[1]
             
             ### update step
             # Gamma returns a vector which tells us which neurons are active
             # during the update step - we need to replicate this vector for
             # all dimensions.  Hint: length(Gamma(c)) == nr
-            #gamma.m <- matrix(Gamma(c),nr,nc)
-            #neurons <- neurons - alpha * diff * gamma.m
-            neurons <- neurons - Gamma(c) * alpha * diff # R is column major so we can get away with this
+            gamma.m <- matrix(Gamma(c),nr,nc,byrow=FALSE)
+            neurons <- neurons - alpha * diff * gamma.m
+            #neurons <- neurons - Gamma(c) * alpha * diff # R is column major so we can get away with this
         }
+    }
+
+    if (vsom.r.debug)
+    {
+        sink()
     }
 
     return(neurons)
 }
+
+### vsom.f - vectorized version of the online SOM training algorithm written in Fortran90
+
+vsom.f <- function(data,xdim,ydim,alpha,train)
+{
+    ### some constants
+    dr <- nrow(data)
+    dc <- ncol(data)
+    nr <- xdim*ydim
+    nc <- dc # dim of data and neurons is the same
+    
+    ### build and initialize the matrix holding the neurons
+    cells <- nr * nc        # no. of neurons times number of data dimensions
+    v <- runif(cells,-1,1)  # vector with small init values for all neurons
+    # NOTE: each row represents a neuron, each column represents a dimension.
+    neurons <- matrix(v,nrow=nr,ncol=nc)  # rearrange the vector as matrix
+    
+
+    result <- .Fortran("vsom",
+                       as.single(neurons),
+                       as.single(data.matrix(data)),
+                       as.integer(dr),
+                       as.integer(dc),
+                       as.integer(xdim),
+                       as.integer(ydim),
+                       as.single(alpha),
+                       as.integer(train),
+                       package="vsom")
+
+    # unpack the structure and list in result[1]
+    v <- result[1]
+    neurons <- matrix(v[[1]],nrow=nr,ncol=nc,byrow=FALSE)  # rearrange the result vector as matrix
+    
+    return(neurons)
+}
+
+
 
 
 
