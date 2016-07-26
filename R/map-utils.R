@@ -81,7 +81,7 @@ require(graphics)
 # Hint: if your training data does not have any labels you can construct a
 #       simple label dataframe as follows: labels <- data.frame(1:nrow(training.data))
 
-map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.6,train=1000,algorithm="som")
+map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algorithm="vsom")
 {
     
     # pmatch: som == 1, vsom == 2, experimental == 3, kohonen == 4
@@ -1281,23 +1281,12 @@ df.mean.test <- function(df1,df2,conf = .95)
 	list(diff=mean.diff.v,conf.int.lo=mean.confintlo.v,conf.int.hi=mean.confinthi.v)
 }
 
-### vsom.r - vectorized version of the online SOM training algorithm written entirely in R
-
-### debugging:
-# vsom.r.debug == 1: simple debugging messages
-# vsom.r.debug == 2: cache debugging messages
-vsom.r.debug <- 0
+### vsom.r - vectorized, unoptimized version of the online SOM training algorithm written entirely in R
 
 vsom.r <- function(data,xdim,ydim,alpha,train)
 {
-    
-    if (vsom.r.debug)
-    {
-        sink("vsom-debug.txt")
-        cat("VSOM...\n")
-    }
-    
     ### some constants
+    sample.size <- 10 # percent
     dr <- nrow(data)
     dc <- ncol(data)
     nr <- xdim*ydim
@@ -1313,150 +1302,73 @@ vsom.r <- function(data,xdim,ydim,alpha,train)
     #nsize <- ceiling(sqrt(xdim^2 + ydim^2))
     nsize <- max(xdim,ydim) + 1
     nsize.step <- ceiling(train/nsize)
-    
-    ### set up neighborhood cache
-    # NOTE: each row represents a neighborhood vector for a particular neuron
-    cache.valid <- as.vector(matrix(FALSE,nr,1))
-    cache <- matrix(0,nrow=nr,ncol=nr)
-    cache.counter <- 0
+    step.counter <- 0 # counts the number of epochs per nsize.step
+
+    # convert a 1D rowindex into a 2D map coordinate
+    coord2D <- function(rowix)
+    {
+        x <- (rowix-1) %% xdim + 1
+        y <- (rowix-1) %/% xdim + 1
+        c(x,y)
+    }
     
     ### neighborhood function
     Gamma <- function(c)
     {
-        ### build a neighborhood vector in the xdim direction
-        build.xvector <- function()
+        # neighborhood construction
+        hood <- c()
+        
+        # convert the 1D neuron index into a 2D map index
+        c2D <- coord2D(c)
+        
+        # for each neuron m check if on the grid it is
+        # within the neighborhood.
+        for (m in 1:nr)
         {
-            v <- as.vector(matrix(0,xdim,1))
-            
-            x.lb <- if (xc - nsize + 1 < 1) 1 else xc - nsize + 1
-            x.ub <- if (xc + nsize - 1 > xdim) xdim else xc + nsize - 1
-            
-            for (i in x.lb:x.ub)
-            {
-                v[i] <- 1
-            }
-            
-            return (v)
+            m2D <- coord2D(m)
+            d <- sqrt(sum((c2D - m2D)^2))
+            v <- if (d < nsize*1.5) 1.0 else 0.0
+            hood <- c(hood,v)
         }
 
-        ### convert the 1D neuron index into a 2D map index
-        xc <- (c-1) %% xdim + 1
-        yc <- (c-1) %/% xdim + 1
-        
-        ### if we have the neighborhood cached - return
-        if (cache.valid[c])
-        {
-            if (vsom.r.debug > 1)
-            cat("Cache hit",xc,yc,"\n")
-            
-            return(cache[,c])
-        }
-        
-        ### take care of simple cases
-        if (nsize >= xdim && nsize >= ydim)
-        {
-            cache[,c] <<- 1
-            
-            if (vsom.r.debug > 1)
-            {
-                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
-                print(as.vector(cache[,c]))
-                print(data.frame(matrix(cache[,c],xdim,ydim)))
-                #invisible(readline(prompt="Press [enter] to continue"))
-            }
-        }
-        else if (nsize >= ydim)
-        {
-            x.v <- build.xvector()
-            cache[,c] <<- x.v
-
-            if (vsom.r.debug > 1)
-            {
-                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
-                print(as.vector(cache[,c]))
-                print(data.frame(matrix(cache[,c],xdim,ydim)))
-                #invisible(readline(prompt="Press [enter] to continue"))
-            }
-        }
-        else
-        {
-            ### full blown neighborhood construction
-            neigh.temp <- matrix(0,xdim,ydim)
-            x.v <- build.xvector()
-            
-            y.lb <- if (yc - nsize + 1 < 1) 1 else yc - nsize + 1
-            y.ub <- if (yc + nsize - 1 > ydim) ydim else yc + nsize - 1
-            
-            for (i in y.lb:y.ub)
-            {
-                neigh.temp[,i] <- x.v
-            }
-            
-            ### convert the 2D neighborhood into a 1D neighborhood vector
-            cache[,c] <<- as.vector(matrix(neigh.temp,nr,1))
-            
-            if (vsom.r.debug > 1)
-            {
-                cat("Neighborhood of ",c,"=(",xc,yc,") Nsize",nsize,"\n")
-                print(as.vector(cache[,c]))
-                print(data.frame(matrix(cache[,c],xdim,ydim)))
-                #invisible(readline(prompt="Press [enter] to continue"))
-            }
-        }
-        
-        ### cache it
-        cache.valid[c] <<- TRUE
-        
-        ### return it
-        return (cache[,c])
+        return (hood)
     }
     
     ### training ###
     ### the epochs loop
     for (epoch in 1:train)
     {
-        if (vsom.r.debug) cat("Epoch",epoch,"Neighborbood",nsize,"\n")
-        
-        cache.counter <- cache.counter + 1
-        if (cache.counter == nsize.step)
+        # hood size decreases in disrete nsize.steps
+        step.counter <- step.counter + 1
+        if (step.counter == nsize.step)
         {
-            cache.counter <- 0
+            step.counter <- 0
             nsize <- nsize - 1
-            cache.valid <- as.vector(matrix(FALSE,nr,1))  # clear the cache
         }
         
-        ### run through the training set
-        for (k in 1:dr)
-        {
-            xk <- as.numeric(data[k,])
-            
-            ### competitive step
-            xk.m <- matrix(xk,nr,nc,byrow=TRUE)
-            diff <- neurons - xk.m
-            squ <- diff * diff
-            s <- rowSums(squ)
-            o <- order(s)
-            c <- o[1]
-            
-            ### update step
-            # Gamma returns a vector which tells us which neurons are active
-            # during the update step - we need to replicate this vector for
-            # all dimensions.  Hint: length(Gamma(c)) == nr
-            gamma.m <- matrix(Gamma(c),nr,nc,byrow=FALSE)
-            neurons <- neurons - alpha * diff * gamma.m
-            #neurons <- neurons - Gamma(c) * alpha * diff # R is column major so we can get away with this
-        }
-    }
-
-    if (vsom.r.debug)
-    {
-        sink()
+        # create a sample of the training vectors
+        ix <- sample(1:dr,1)
+        
+        ### learn the training set sample
+        xk <- as.numeric(data[ix,])
+        
+        ### competitive step
+        xk.m <- matrix(xk,nr,nc,byrow=TRUE)
+        diff <- neurons - xk.m
+        squ <- diff * diff
+        s <- rowSums(squ)
+        o <- order(s)
+        c <- o[1]
+        
+        ### update step
+        gamma.m <- matrix(Gamma(c),nr,nc,byrow=FALSE)
+        neurons <- neurons - alpha * diff * gamma.m
     }
 
     return(neurons)
 }
 
-### vsom.f - vectorized version of the online SOM training algorithm written in Fortran90
+### vsom.f - vectorized and optimized version of the online SOM training algorithm written in Fortran90
 
 vsom.f <- function(data,xdim,ydim,alpha,train)
 {
