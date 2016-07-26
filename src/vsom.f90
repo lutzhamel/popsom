@@ -6,15 +6,12 @@
 ! define the following to emit debugging code
 !#define debug 1
 
-! define this for pure vector/matrix based operations
-#define vector 1
-
-! define this for standard do-loop computations
-!#define iterative 1
-
 !!!!!! vsom !!!!!!
 subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     implicit none
+
+    !!! constants
+    integer,parameter :: sample_size = 10 ! percent
 
     !!! Input/Output
     ! neurons are initialized to small random values and then trained.
@@ -26,11 +23,12 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     real*4,intent(in) :: alpha
 
     !!! Locals
+    ! Note: the neighborhood cache is only valid as long as cache_counter < nsize_step
     integer :: cache_counter
     integer :: nsize
     integer :: nsize_step
     integer :: epoch
-    integer :: k,i
+    integer :: i
     integer :: ca(1)
     integer :: c
     real*4  :: cache(1:xdim*ydim,1:xdim*ydim)       ! neighborhood cache
@@ -38,9 +36,9 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     real*4  :: diff(1:xdim*ydim,1:dtcols)
     real*4  :: squ(1:xdim*ydim,1:dtcols)
     real*4  :: s(1:xdim*ydim)
-#ifdef iterative
-    integer :: j
-#endif
+    integer :: coord_lookup(1:xdim*ydim,1:2)
+    integer :: ix
+    real*4  :: ix_random
 
 #ifdef debug
     open(unit=1,file="debug.txt",form="formatted",status="replace",action="write")
@@ -49,10 +47,18 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     call write_array(1,neurons,xdim*ydim,dtcols,'f7.3')
 #endif
 
+    !!! setup
     nsize = max(xdim,ydim) + 1
     nsize_step = ceiling((train*1.0)/nsize)
     cache_valid = .false.
     cache_counter = 0
+    call random_seed()
+
+    ! fill the 2D coordinate lookup table that associates each
+    ! 1D neuron coordinate with a 2D map coordinate
+    do i=1,xdim*ydim
+        call coord2D(coord_lookup(i,:),i,xdim)
+    end do
 
     !!! training !!!
     ! the epochs loop
@@ -61,7 +67,7 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 #ifdef debug
         write(1,*) 'Epoch',epoch,'Neighborbood',nsize
 #endif
-
+        ! check if we are at the end of a step
         cache_counter = cache_counter + 1
         if (cache_counter == nsize_step) then
             cache_counter = 0
@@ -69,64 +75,35 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
             cache_valid = .false.
         endif
 
-        !!! run through the training set
-        do k=1,dtrows
-            ! neuron local computation
-#ifdef vector
-            do i=1,dtcols
-               diff(:,i) = neurons(:,i) - dt(k,i)
-            enddo
-#endif
-#ifdef iterative
-            do i=1,dtcols
-               do j=1,xdim*ydim
-                  diff(j,i) = neurons(j,i) - dt(k,i)
-               enddo
-            enddo
-#endif
+        ! select a training observation
+        call random_number(ix_random)
+        ix = 1 + int(ix_random*dtrows)
 
-#ifdef vector
-            squ = diff * diff
-#endif
-#ifdef iterative
-            do i=1,dtcols
-               do j=1,xdim*ydim
-                 squ(j,i) = diff(j,i) * diff(j,i)
-               enddo
-            enddo
-#endif
+        !!! learn the training observation
+        ! neuron local computation
+        do i=1,dtcols
+           diff(:,i) = neurons(:,i) - dt(ix,i)
+        enddo
+        squ = diff * diff
+        call rowsums(s,squ,xdim*ydim,dtcols)
 
-            call rowsums(s,squ,xdim*ydim,dtcols)
+        ! reduce
+        ca = minloc(s)
+        c = ca(1)
 
-            ! reduce
-            ca = minloc(s)
-            c = ca(1)
-
-            !!! update step
-            ! compute neighborhood vector
-            call Gamma(cache(:,c),cache_valid,nsize,xdim,ydim,c)
+        !!! update step
+        ! compute neighborhood vector
+        call Gamma(cache(:,c),cache_valid,coord_lookup,nsize,xdim,ydim,c)
 
 #ifdef debug
-            write(1,*) 'neighborhood cache for',c
-            call write_array(1,cache(:,c),xdim,ydim,'f2.0')
+        write(1,*) 'neighborhood cache for',c
+        call write_array(1,cache(:,c),xdim,ydim,'f2.0')
 #endif
 
-#ifdef vector
-            do i=1,dtcols
-               where (cache(:,c) > 0.0) 
-                  neurons(:,i) = neurons(:,i) - alpha * diff(:,i)
-               endwhere
-            enddo
-#endif
-#ifdef iterative
-            do i=1,dtcols
-               do j=1,xdim*ydim
-                  if (cache(j,c) > 0.0) then
-                    neurons(j,i) = neurons(j,i) - alpha * diff(j,i)
-                  endif
-               enddo
-            enddo
-#endif
+        do i=1,dtcols
+           where (cache(:,c) > 0.0) 
+              neurons(:,i) = neurons(:,i) - alpha * diff(:,i)
+           endwhere
         enddo
     enddo
 
@@ -140,23 +117,19 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 end subroutine vsom
 
 !!!!!! Gamma !!!!!!
-subroutine Gamma(neighborhood,cache_valid,nsize,xdim,ydim,c)
+subroutine Gamma(neighborhood,cache_valid,coord_lookup,nsize,xdim,ydim,c)
     implicit none
 
     ! parameters
-    ! Note: in the cache a neighborhood is a vector, here we
-    ! reshaping the vector into a 2D matrix on the fly
-    real*4,intent(inout)  :: neighborhood(1:xdim,1:ydim)
+    real*4,intent(inout)  :: neighborhood(1:xdim*ydim)
     logical,intent(inout) :: cache_valid(1:xdim*ydim)
+    integer,intent(in)    :: coord_lookup(1:xdim*ydim,1:2)
     integer,intent(in)    :: nsize,xdim,ydim,c
 
-    integer :: xc,yc
-    real*4  :: x_v(1:xdim)
-    integer :: i
-    integer :: y_lb,y_ub
-#ifdef iterative
-    integer :: j
-#endif
+    ! locals
+    integer :: m
+    integer :: c2D(1:2),m2D(1:2)
+    real*4  :: d
 
     ! cache is valid - nothing to do
     if (cache_valid(c)) then
@@ -167,62 +140,21 @@ subroutine Gamma(neighborhood,cache_valid,nsize,xdim,ydim,c)
     endif
 
     ! convert the 1D neuron index into a 2D map index
-    xc = modulo(c-1,xdim) + 1
-    yc = (c-1)/xdim + 1
+    call coord2D(c2D,c,xdim)
 
-    ! take care of simple cases
-    if (nsize >= xdim .and. nsize >= ydim) then
-        neighborhood = 1
-    else if (nsize >= ydim) then
-        call build_xvector(x_v,nsize,xc,xdim)
-
-#ifdef vector
-        do i=1,ydim
-            neighborhood(:,i) = x_v
-        enddo
-#endif
-#ifdef iterative
-        do i=1,ydim
-           do j=1,xdim
-              neighborhood(j,i) = x_v(j)
-           enddo
-        enddo
-#endif
-    else ! full blown neighborhood construction
-        neighborhood = 0
-        call build_xvector(x_v,nsize,xc,xdim)
-
-        ! compute y_lb
-        if (yc - nsize + 1 < 1) then
-            y_lb = 1
+    ! for each neuron m check if on the grid it is
+    ! within the neighborhood.
+    do m=1,xdim*ydim
+        m2D = coord_lookup(m,:)
+        d = sqrt(real(sum((c2D-m2D)**2)))
+        if (d < nsize*1.5) then
+            neighborhood(m) = 1.0
         else
-            y_lb = yc - nsize + 1
-        endif
-
-        ! compute y_ub
-        if (yc + nsize - 1 > ydim) then
-            y_ub = ydim
-        else
-            y_ub = yc + nsize - 1
-        endif
-            
-        ! construct the neighborhood
-#ifdef vector
-        do i=y_lb,y_ub
-            neighborhood(:,i) = x_v
-        enddo
-#endif
-#ifdef iterative
-        do i=y_lb,y_ub
-           do j=1,xdim
-              neighborhood(j,i) = x_v(j)
-           enddo
-        enddo
-#endif
-    endif
+            neighborhood(m) = 0.0
+        end if
+    end do
 
 #ifdef debug
-    write(1,*) 'computing neighborhood matrix for',xc,yc
     call write_array(1,neighborhood,xdim,ydim,'f2.0')
 #endif
 
@@ -232,39 +164,6 @@ subroutine Gamma(neighborhood,cache_valid,nsize,xdim,ydim,c)
     return
 end subroutine Gamma
 
-!!!!!! build_xvector !!!!!!
-pure subroutine build_xvector(x_v,nsize,xc,xdim)
-    implicit none
-
-    ! parameters
-    real*4,intent(out) :: x_v(1:xdim)
-    integer,intent(in) :: nsize,xc,xdim
-
-    integer :: x_lb,x_ub,i
-
-    x_v = 0
-
-    ! compute x_lb
-    if (xc - nsize + 1 < 1) then
-        x_lb = 1
-    else
-        x_lb = xc - nsize + 1
-    endif
-
-    ! compute x_ub
-    if (xc + nsize - 1 > xdim) then
-        x_ub = xdim
-    else
-        x_ub = xc + nsize - 1
-    endif
-
-    ! construct the xdim neighborhood
-    do i = x_lb,x_ub
-        x_v(i) = 1
-    enddo
-
-    return
-end subroutine build_xvector
 
 !!!!!! rowsums !!!!!!
 pure subroutine rowsums(s,v,rows,cols)
@@ -276,28 +175,28 @@ pure subroutine rowsums(s,v,rows,cols)
     integer,intent(in) :: rows,cols
 
     integer :: i
-#ifdef iterative
-    integer :: j
-#endif
 
     s = 0.0
 
-#ifdef vector
     do i = 1,cols
        s(:) = s(:) + v(:,i)
     enddo
-#endif
-#ifdef iterative
-    do j = 1,cols
-       do i=1,rows
-          s(i) = s(i) + v(i,j)
-       enddo
-    enddo
-#endif
 
     return
 end subroutine rowsums
 
+!!! convert a 1D rowindex into a 2D map coordinate
+pure subroutine coord2D(coord,ix,xdim)
+    implicit none
+
+    integer,intent(out) :: coord(1:2)
+    integer,intent(in) :: ix,xdim
+
+    coord(1) = modulo(ix-1,xdim) + 1
+    coord(2) = (ix-1)/xdim + 1
+
+    return
+end subroutine coord2D
 
 #ifdef debug
 !!!!!!!!!!!!!!!!!!!
