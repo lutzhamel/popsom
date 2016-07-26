@@ -2,8 +2,8 @@
 program test
     implicit none
 
-    integer,parameter :: xdim=15,ydim=10,dd=4,dl=150,train=10000,debug=0
-    real*4,parameter :: alpha = 0.6
+    integer,parameter :: xdim=15,ydim=10,dd=4,dl=150,train=10000
+    real*4,parameter :: alpha = 0.3
     real*4 :: neurons(1:xdim*ydim*dd)
     real*4 :: train_data(1:dl*dd)
 
@@ -1212,7 +1212,7 @@ program test
         1.8 /)
 
         write(*,*) 'Start...'
-        call vsom(neurons,train_data,dl,dd,xdim,ydim,alpha,train,debug)
+        call vsom(neurons,train_data,dl,dd,xdim,ydim,alpha,train)
         write(*,*) 'Stop...'
 
 end program  
