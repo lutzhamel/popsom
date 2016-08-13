@@ -29,19 +29,6 @@
 #     - map.convergence now has has a verb switch, in verbose mode it will return a vector of
 #       individual feature convergences.
 #
-### Papers that document the theoretical aspects of this software package:
-#
-# "Bayesian Probability Approach to Feature Significance for Infrared 
-# Spectra of Bacteria", Lutz Hamel, Chris W. Brown, Applied Spectroscopy, Volume 66, Number 1, 2012.
-#
-# "A Population Based Convergence Criterion for Self-Organizing Maps", Lutz Hamel and Benjamin Ott. 
-# Proceeding of the 8th International Conference on Data Mining (DMIN'12), to appear.
-#
-# "Improved Interpretability of the Unified Distance Matrix with Connected Components", Lutz Hamel and 
-# Chris W. Brown. Proceeding of the 7th International Conference on Data Mining (DMIN'11), July 18-21, 2011, 
-# Las Vegas Nevada, USA, ISBN: 1-60132-168-6, pp338-343, CSREA Press, 2011.
-#
-# (preprints of these papers are available at www.cs.uri.edu/~hamel)
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
@@ -63,7 +50,6 @@
 # map.starburst(m)
 
 # load libraries
-require(som)
 require(fields)
 require(graphics)
 
@@ -81,11 +67,19 @@ require(graphics)
 # Hint: if your training data does not have any labels you can construct a
 #       simple label dataframe as follows: labels <- data.frame(1:nrow(training.data))
 
+# NOTE: default algorithm: "vsom" also available: "som", "kohonen", "experimental", "batchsom"
+
+# NOTE: if you don't want map.build to do package loading/unloading set this to FALSE
+#       This is here to give you a chance to experiment with different algorithms, unfortunately
+#       a lot of the packages use the same function names leading to conflicts, therefore we need
+#       to load/unload the appropriate packages.
+map.load.unload <- TRUE
+
 map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algorithm="vsom")
 {
     
-    # pmatch: som == 1, vsom == 2, experimental == 3, kohonen == 4
-    algorithms = c("som","vsom","experimental","kohonen")
+    # pmatch: som == 1, vsom == 2, experimental == 3, kohonen == 4, batchsom == 5
+    algorithms = c("som","vsom","experimental","kohonen","batchsom")
     
 	# check if the dims are reasonable
 	if (xdim < 3 || ydim < 3)
@@ -94,6 +88,9 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
     # train the map - returns a list of neurons
     if (pmatch(algorithm,algorithms,nomatch=0) == 1) # som
     {
+        # load the correct support library
+        if (map.load.unload) library(som,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
+
         # compute the initial neighborhood radius
         r <- sqrt(xdim^2 + ydim^2)
 
@@ -112,6 +109,10 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
         # for the neuron matrix, we get rid of that by casting the neurons
         # as a new matrix
         neurons <- matrix(m$code,xdim*ydim,ncol(data))
+
+        # unload the kohonen package
+        if (map.load.unload) detach(name=package:som,unload=TRUE)
+
     }
     else if (pmatch(algorithm,algorithms,nomatch=0) == 2) # vsom
     {
@@ -132,7 +133,7 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
     else if (pmatch(algorithm,algorithms,nomatch=0) == 4) # kohonen
     {
         # load the correct support library
-        library(kohonen,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
+        if (map.load.unload) library(kohonen,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
 
         # compute the initial neighborhood radius
         r <- sqrt(xdim^2 + ydim^2)
@@ -149,7 +150,29 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
         neurons <- matrix(as.numeric(m$codes),xdim*ydim,ncol(data))
         
         # unload the kohonen package
-        detach(name=package:kohonen,unload=TRUE)
+        if (map.load.unload) detach(name=package:kohonen,unload=TRUE)
+    }
+    else if (pmatch(algorithm,algorithms,nomatch=0) == 5) # batchsom
+    {
+        # load the correct support library
+        library(multisom,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
+
+        # compute the initial neighborhood radius
+        r <- sqrt(xdim^2 + ydim^2)
+
+        m <- BatchSOM(data.matrix(data),
+                      grid=somgrid(xdim,ydim,"rectangular"),
+                      min.radius=1,
+                      max.radius=r,
+                      maxit=train,
+                      "random",
+                      "bubble")
+        
+        # extract the neurons
+        neurons <- matrix(m$codes,xdim*ydim,ncol(data))
+
+        # unload the kohonen package
+        if (map.load.unload) detach(name=package:multisom,unload=TRUE)
     }
     else
     {
@@ -163,10 +186,11 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
                 ydim=ydim,
                 alpha=alpha,
                 train=train,
+                algorithm=algorithm,
                 neurons=neurons)
             
     ### add the visual field to map
-    # for each observations i visual has an entry for
+    # for each observation i, visual has an entry for
     # the best matching neuron
     
     visual <- c()
@@ -278,11 +302,11 @@ map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
     if (class(map) != "map")
         stop("map.accuracy: first argument is not a map object.")
 
-    # data.df is a dataframe that contain the training data
-    # note: map$data is what the 'som' package returns
+    # data.df is a matrix that contains the training data
     data.df <- as.matrix(map$data)
     
     # sample map$data
+    # TODO: think of something clever here rather than just aborting.
     if (k > nrow(data.df))
         stop("map.accuracy: sample larger than training data.")
     
@@ -525,7 +549,8 @@ accuracy <- function(map,sample,data.ix)
 
 # coordinate -- convert from a row index to a map xy-coordinate
 
-coordinate <- function(map,rowix) {
+coordinate <- function(map,rowix)
+{
     x <- (rowix-1) %% map$xdim + 1
     y <- (rowix-1) %/% map$xdim + 1
     c(x,y)
@@ -533,7 +558,8 @@ coordinate <- function(map,rowix) {
 
 #rowix -- convert from a map xy-coordinate to a row index
 
-rowix <- function(map,x,y) {
+rowix <- function(map,x,y)
+{
     rix <- x + (y-1)*map$xdim
     rix
 }
@@ -541,7 +567,8 @@ rowix <- function(map,x,y) {
 # map.graphics.set -- set the graphics environment for our map utilities
 #                     the return value is the original graphics param vector 
 
-map.graphics.set <- function() {
+map.graphics.set <- function()
+{
 	par.v <- par()
 	par(ps=6)
 	par.v
@@ -550,7 +577,8 @@ map.graphics.set <- function() {
 # map.graphics.reset -- reset the graphics environment to the original state
 # parameter - a vector containing the settings for the original state
 
-map.graphics.reset <- function(par.vector) {
+map.graphics.reset <- function(par.vector)
+{
 	par(ps=par.vector$ps)
 }
 
@@ -1281,12 +1309,10 @@ df.mean.test <- function(df1,df2,conf = .95)
 	list(diff=mean.diff.v,conf.int.lo=mean.confintlo.v,conf.int.hi=mean.confinthi.v)
 }
 
-### vsom.r - vectorized, unoptimized version of the online SOM training algorithm written entirely in R
-
+### vsom.r - vectorized, unoptimized version of the stochastic SOM training algorithm written entirely in R
 vsom.r <- function(data,xdim,ydim,alpha,train)
 {
     ### some constants
-    sample.size <- 10 # percent
     dr <- nrow(data)
     dc <- ncol(data)
     nr <- xdim*ydim
@@ -1309,29 +1335,19 @@ vsom.r <- function(data,xdim,ydim,alpha,train)
     {
         x <- (rowix-1) %% xdim + 1
         y <- (rowix-1) %/% xdim + 1
+        
         c(x,y)
     }
     
     ### neighborhood function
     Gamma <- function(c)
     {
-        # neighborhood construction
-        hood <- c()
-        
-        # convert the 1D neuron index into a 2D map index
-        c2D <- coord2D(c)
-        
-        # for each neuron m check if on the grid it is
-        # within the neighborhood.
-        for (m in 1:nr)
-        {
-            m2D <- coord2D(m)
-            d <- sqrt(sum((c2D - m2D)^2))
-            v <- if (d < nsize*1.5) 1.0 else 0.0
-            hood <- c(hood,v)
-        }
+        c2D <- coord2D(c)                       # convert the 1D neuron index into a 2D map index
+        m <- c(1:nr)                            # a vector with all neuron 1D addresses
+        d <- sqrt((((rep(1,nr) %o% c2D) - matrix(coord2D(m),nr,2))^2) %*% c(1,1))    # distance vector
+        hood <- ifelse(d < nsize*1.5,alpha,0.0)  # if m on the grid is in neigh then alpha else 0.0
 
-        return (hood)
+        as.vector(hood)
     }
     
     ### training ###
@@ -1346,30 +1362,27 @@ vsom.r <- function(data,xdim,ydim,alpha,train)
             nsize <- nsize - 1
         }
         
-        # create a sample of the training vectors
+        # create a sample training vector
         ix <- sample(1:dr,1)
-        
-        ### learn the training set sample
         xk <- as.numeric(data[ix,])
         
         ### competitive step
-        xk.m <- matrix(xk,nr,nc,byrow=TRUE)
+        xk.m <- rep(1,nr) %o% xk
         diff <- neurons - xk.m
         squ <- diff * diff
-        s <- rowSums(squ)
+        s <- squ %*% rep(1,nc)
         o <- order(s)
         c <- o[1]
         
         ### update step
-        gamma.m <- matrix(Gamma(c),nr,nc,byrow=FALSE)
-        neurons <- neurons - alpha * diff * gamma.m
+        gamma.m <- Gamma(c) %o% rep(1,nc)
+        neurons <- neurons - diff * gamma.m
     }
 
-    return(neurons)
+    neurons
 }
 
-### vsom.f - vectorized and optimized version of the online SOM training algorithm written in Fortran90
-
+### vsom.f - vectorized and optimized version of the stochastic SOM training algorithm written in Fortran90
 vsom.f <- function(data,xdim,ydim,alpha,train)
 {
     ### some constants
@@ -1400,7 +1413,7 @@ vsom.f <- function(data,xdim,ydim,alpha,train)
     v <- result[1]
     neurons <- matrix(v[[1]],nrow=nr,ncol=nc,byrow=FALSE)  # rearrange the result vector as matrix
     
-    return(neurons)
+    neurons
 }
 
 
