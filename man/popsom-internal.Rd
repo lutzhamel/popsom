@@ -7,7 +7,8 @@
 \alias{map.graphics.set}\alias{map.graphics.reset}\alias{plots.heat}\alias{compute.centroids}\alias{compute.umat}\alias{compute.heat}\alias{df.var.test}
 \alias{df.mean.test}
 \alias{vsom.r}
-\alias{vsom.f}\title{Internal popsom functions}\description{  Internal popsom Functions.}\usage{
+\alias{vsom.f}
+\alias{batchsom.private}\title{Internal popsom functions}\description{  Internal popsom Functions.}\usage{
 bootstrap(map,conf.int,data.df,k,sample.acc.v)
 best.match(map,obs,full=FALSE)
 accuracy(map,sample,data.ix)
@@ -23,4 +24,5 @@ df.var.test(df1,df2,conf = .95)
 df.mean.test(df1,df2,conf = .95)
 vsom.r(data,xdim,ydim,alpha,train)
 vsom.f(data,xdim,ydim,alpha,train)
+batchsom.private(data,grid,min.radius,max.radius,train,init,radius.type)
 }\details{  These are not to be called directly by the user.}\keyword{internal}
