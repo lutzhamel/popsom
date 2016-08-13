@@ -1,17 +1,15 @@
 \name{map.starburst}
 \alias{map.starburst}
 \title{Generate Starburst For Map}
-\description{Computes and displays the starburst representation of the clusters for the map.}
+\description{Computes and displays the starburst representation of clusters on a map.}
 \usage{
 map.starburst(map, explicit = FALSE, smoothing = 2)
 }
 \arguments{
   \item{map}{an object of type 'map'.}
   \item{explicit}{controls the shape of the connected components.}
-  \item{smoothing}{controls the smoothing level of the umat (NULL, 0, >0).}
+  \item{smoothing}{controls the smoothing level of the map display (NULL, 0, >0).}
 }
-\note{We apply a gradient approach to the UMAT in order to compute the starburst visualization
-of the clusters.}
 
 \references{
 "Improved Interpretability of the Unified Distance Matrix with Connected Components,"

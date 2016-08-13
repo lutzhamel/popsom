@@ -8,7 +8,7 @@ map.projection(map)
 \arguments{
   \item{map}{an object of type 'map'.}
 }
-\value{a dataframe containing the projection onto the map for each observation.}
+\value{a dataframe containing the projection onto the map for each training observation.}
 \author{Lutz Hamel, Benjamin Ott, Gregory Breard}
 \examples{
 data(iris)

@@ -3,17 +3,19 @@
 \title{Build Map}
 \description{Constructs a SOM, returns an object of class 'map'.}
 \usage{
-map.build(data, labels=NULL, xdim = 10, ydim = 5, alpha = 0.6, train = 1000)
+map.build(data, labels=NULL, xdim = 10, ydim = 5, alpha = 0.3, train = 1000, algorithm="vsom")
 }
 \arguments{
   \item{data}{a dataframe where each row contains an unlabeled training instance.}
   \item{labels}{a vector or dataframe with one label for each observation in data.}
-  \item{xdim}{the x-dimension of the map.}
-  \item{ydim}{the y-dimension of the map.}
-  \item{alpha}{the learning rate, should be a positive non-zero real number.}
-  \item{train}{the number of training iterations.}
+  \item{xdim}{the x-dimension of the map. (default=10)}
+  \item{ydim}{the y-dimension of the map. (default=5)}
+  \item{alpha}{the learning rate, should be a positive non-zero real number. (default=0.3)}
+  \item{train}{the number of training iterations. (default=1000)}
+  \item{algorithm}{training algorithm selection switch. (default="vsom")}
 }
 \value{object of type 'map'.}
+\note{You have a choice of algorithms: "vsom" - vectorized stochastic learning, "som" - stochastic learning, "batchsom" - batch version of the SOM training algorithm.}
 \note{If your training data does not have any labels you can construct a simple label vector as follows: labels <- 1:nrow(training.data).  
 	If you let the labels default to the NULL value then no labels will be shown 
 	in the map visualization.}
