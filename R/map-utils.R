@@ -50,6 +50,8 @@
 # map.starburst(m)
 
 # load libraries
+require(som)
+require(class)
 require(fields)
 require(graphics)
 
@@ -67,19 +69,14 @@ require(graphics)
 # Hint: if your training data does not have any labels you can construct a
 #       simple label dataframe as follows: labels <- data.frame(1:nrow(training.data))
 
-# NOTE: default algorithm: "vsom" also available: "som", "kohonen", "experimental", "batchsom"
+# NOTE: default algorithm: "vsom" also available: "som", "experimental", "batchsom"
 
-# NOTE: if you don't want map.build to do package loading/unloading set this to FALSE
-#       This is here to give you a chance to experiment with different algorithms, unfortunately
-#       a lot of the packages use the same function names leading to conflicts, therefore we need
-#       to load/unload the appropriate packages.
-map.load.unload <- TRUE
 
 map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algorithm="vsom")
 {
     
-    # pmatch: som == 1, vsom == 2, experimental == 3, kohonen == 4, batchsom == 5
-    algorithms = c("som","vsom","experimental","kohonen","batchsom")
+    # pmatch: som == 1, vsom == 2, experimental == 3, batchsom == 4
+    algorithms = c("som","vsom","experimental","batchsom")
     
 	# check if the dims are reasonable
 	if (xdim < 3 || ydim < 3)
@@ -88,9 +85,6 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
     # train the map - returns a list of neurons
     if (pmatch(algorithm,algorithms,nomatch=0) == 1) # som
     {
-        # load the correct support library
-        if (map.load.unload) library(som,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
-
         # compute the initial neighborhood radius
         r <- sqrt(xdim^2 + ydim^2)
 
@@ -109,10 +103,6 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
         # for the neuron matrix, we get rid of that by casting the neurons
         # as a new matrix
         neurons <- matrix(m$code,xdim*ydim,ncol(data))
-
-        # unload the kohonen package
-        if (map.load.unload) detach(name=package:som,unload=TRUE)
-
     }
     else if (pmatch(algorithm,algorithms,nomatch=0) == 2) # vsom
     {
@@ -130,53 +120,25 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
                           alpha=alpha,
                           train=train)
     }
-    else if (pmatch(algorithm,algorithms,nomatch=0) == 4) # kohonen
+    else if (pmatch(algorithm,algorithms,nomatch=0) == 4) # batchsom
     {
-        # load the correct support library
-        if (map.load.unload) library(kohonen,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
-
         # compute the initial neighborhood radius
         r <- sqrt(xdim^2 + ydim^2)
 
-        m <- som(data.matrix(data),
-                 grid=somgrid(xdim,ydim,"rectangular"),
-                 alpha=c(alpha,0.01),
-                 radius=c(r,0),
-                 n.hood="square",
-                 toroidal=FALSE,
-                 rlen=train)
-        
-        # extract the neurons
-        neurons <- matrix(as.numeric(m$codes),xdim*ydim,ncol(data))
-        
-        # unload the kohonen package
-        if (map.load.unload) detach(name=package:kohonen,unload=TRUE)
-    }
-    else if (pmatch(algorithm,algorithms,nomatch=0) == 5) # batchsom
-    {
-        # load the correct support library
-        library(multisom,warn.conflicts=FALSE,quietly=TRUE,verbose=FALSE)
-
-        # compute the initial neighborhood radius
-        r <- sqrt(xdim^2 + ydim^2)
-
-        m <- BatchSOM(data.matrix(data),
-                      grid=somgrid(xdim,ydim,"rectangular"),
-                      min.radius=1,
-                      max.radius=r,
-                      maxit=train,
-                      "random",
-                      "bubble")
+        m <- batchsom.private(data.matrix(data),
+                              grid=somgrid(xdim,ydim,"rectangular"),
+                              min.radius=1,
+                              max.radius=r,
+                              train=train,
+                              "random",
+                              "bubble")
         
         # extract the neurons
         neurons <- matrix(m$codes,xdim*ydim,ncol(data))
-
-        # unload the kohonen package
-        if (map.load.unload) detach(name=package:multisom,unload=TRUE)
     }
     else
     {
-        stop("map.build only supports 'som','vsom','experimental',and 'kohonen'")
+        stop("map.build only supports 'som','vsom','experimental',and 'batchsom'")
     }
     
     ### construct the map object
@@ -1414,6 +1376,52 @@ vsom.f <- function(data,xdim,ydim,alpha,train)
     neurons <- matrix(v[[1]],nrow=nr,ncol=nc,byrow=FALSE)  # rearrange the result vector as matrix
     
     neurons
+}
+
+# batchsom.private - a wrapper around the batch training algorithm from 'class'
+batchsom.private <- function(data,grid,min.radius,max.radius,train,init,radius.type)
+{
+    set.seed(10)
+
+    initt <- pmatch(init, c("random","sample"))
+    radius.type <- pmatch(radius.type,c("gaussian","bubble"))
+    
+    data <- as.matrix(data)
+    nd <- nrow(data)
+    ng <- nrow(grid$pts)
+    
+    xdim<- grid$xdim
+    ydim<- grid$ydim
+    
+    maxit <- ceiling(train/nd)
+    
+    if(initt == 1){
+        init <- matrix(NA, grid$xdim * grid$ydim, dim(data)[2])
+        mi <- apply(data, 2, min)
+        ma <- apply(data, 2, max)
+        for (i in 1:(xdim*ydim)){
+            init[i,] <- mi + (ma - mi) * runif(ncol(init))
+        }
+    }
+    else if (initt == 2){
+        init <- data[sample(1L:nd, ng, replace = FALSE), , drop = FALSE]
+    }
+    
+    nhbrdist <- as.matrix(dist(grid$pts))
+    radii<- seq(max.radius,min.radius,len=maxit)
+
+    for(i in 1:maxit)
+    {
+        cl <- as.numeric(knn1(init, data, 1L:ng))
+        if(radius.type == 1)
+            A <- exp(-nhbrdist/(2*radii[i]))[,cl]
+        else if (radius.type == 2)
+            A <- (nhbrdist <= radii[i])[,cl]
+        ind <- rowSums(A) > 0
+        init[ind, ] <- A[ind, ] %*% data / rowSums(A)[ind]
+    }
+    
+    list(classif=cl,codes=init,grid=grid)
 }
 
 
