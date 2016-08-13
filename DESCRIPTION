@@ -5,7 +5,7 @@ Title: Routines for Constructing and Evaluating Self-Organizing Maps
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "hamel@cs.uri.edu"),
 		     person("Benjamin", "Ott", role = "aut"), person("Gregory", "Breard", role = "aut"))
 Maintainer: Lutz Hamel <hamel@cs.uri.edu>
-Imports: fields, graphics, stats, grDevices	
+Imports: som,class,fields, graphics, stats, grDevices	
 Description: A set of routines which are useful in constructing 
 	and evaluating self-organizing maps (SOMs).
 License: GPL
