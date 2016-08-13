@@ -1,17 +1,28 @@
-! data-parallel implementation of SOM training
-! to compile this for R on a Mac
-! gfortran-4.8  -fPIC -Wall -g -Ofast -cpp  -c  vsom.f90 -o vsom.o
-! gfortran-4.8 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -single_module -multiply_defined suppress -L/Library/Frameworks/R.framework/Resources/lib -L/usr/local/lib -o vsom.so vsom.o -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! vectorized version of the stochastic SOM training algorithm
+! written by Lutz Hamel, University of Rhode Island (c) 2016
+!
+! NOTE: the OPENMP code is experimental with a very corse view of parallelism.
+! Support for OPENMP in R is very limited and therefore should not be used when
+! compiling for R.
+!
+! License:
+! This program is free software; you can redistribute it and/or modify it under
+! the terms of the GNU General Public License as published by the Free Software
+! Foundation.
+!
+! This program is distributed in the hope that it will be useful, but WITHOUT ANY
+! WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+! PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-! define the following to emit debugging code
+! define the following to emit debugging code (only tested in single thread mode)
 !#define debug 1
 
 !!!!!! vsom !!!!!!
 subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
+    !$ use omp_lib
     implicit none
-
-    !!! constants
-    integer,parameter :: sample_size = 10 ! percent
 
     !!! Input/Output
     ! neurons are initialized to small random values and then trained.
@@ -24,7 +35,7 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 
     !!! Locals
     ! Note: the neighborhood cache is only valid as long as cache_counter < nsize_step
-    integer :: cache_counter
+    integer :: step_counter
     integer :: nsize
     integer :: nsize_step
     integer :: epoch
@@ -40,6 +51,8 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     integer :: ix
     real*4  :: ix_random
 
+    !$OMP THREADPRIVATE(i,ca,c,diff,squ,s,xi,ix_random)
+
 #ifdef debug
     open(unit=1,file="debug.txt",form="formatted",status="replace",action="write")
     write(1,*) 'dtrows',dtrows,'dtcols',dtcols,'xdim',xdim,'ydim',ydim,'alpha',alpha,'train',train
@@ -50,30 +63,40 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     !!! setup
     nsize = max(xdim,ydim) + 1
     nsize_step = ceiling((train*1.0)/nsize)
+    step_counter = 0
     cache_valid = .false.
-    cache_counter = 0
     call random_seed()
+
+    !$ call OMP_set_num_threads(2)
+    !$OMP PARALLEL
+    !$ print *, 'no. of threads: ', OMP_get_num_threads() 
 
     ! fill the 2D coordinate lookup table that associates each
     ! 1D neuron coordinate with a 2D map coordinate
+    !$OMP DO
     do i=1,xdim*ydim
         call coord2D(coord_lookup(i,:),i,xdim)
     end do
+    !$OMP END DO
+
 
     !!! training !!!
     ! the epochs loop
+    !$OMP DO
     do epoch=1,train
 
 #ifdef debug
         write(1,*) 'Epoch',epoch,'Neighborbood',nsize
 #endif
+        !$OMP CRITICAL step
         ! check if we are at the end of a step
-        cache_counter = cache_counter + 1
-        if (cache_counter == nsize_step) then
-            cache_counter = 0
+        step_counter = step_counter + 1
+        if (step_counter == nsize_step) then
+            step_counter = 0
             nsize = nsize - 1
             cache_valid = .false.
         endif
+        !$OMP END CRITICAL step
 
         ! select a training observation
         call random_number(ix_random)
@@ -93,7 +116,9 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 
         !!! update step
         ! compute neighborhood vector
+        !$OMP CRITICAL cache
         call Gamma(cache(:,c),cache_valid,coord_lookup,nsize,xdim,ydim,c)
+        !$OMP END CRITICAL cache
 
 #ifdef debug
         write(1,*) 'neighborhood cache for',c
@@ -102,10 +127,14 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 
         do i=1,dtcols
            where (cache(:,c) > 0.0) 
+              !$OMP CRITICAL neurons
               neurons(:,i) = neurons(:,i) - alpha * diff(:,i)
+              !$OMP END CRITICAL neurons
            endwhere
         enddo
     enddo
+!$OMP END DO
+!$OMP END PARALLEL
 
 #ifdef debug
     write(1,*) 'trained neuron matrix'
