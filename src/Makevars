@@ -1,3 +1,2 @@
 # PKG_FCFLAGS = -Ofast -cpp
-PKG_FCFLAGS = -cpp
 

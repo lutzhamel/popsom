@@ -2,36 +2,35 @@
 ! vectorized version of the stochastic SOM training algorithm
 ! written by Lutz Hamel, University of Rhode Island (c) 2016
 !
-! NOTE: the OPENMP code is experimental with a very corse view of parallelism.
-! Support for OPENMP in R is very limited and therefore should not be used when
-! compiling for R.
+! NOTE: the OPENMP code is experimental with a very coarse view of parallelism.
+! Support for OPENMP in R is very limited and therefore OPENMP should not be used 
+! when compiling for R.
 !
-! License:
-! This program is free software; you can redistribute it and/or modify it under
-! the terms of the GNU General Public License as published by the Free Software
+! LICENSE: This program is free software; you can redistribute it and/or modify it 
+! under the terms of the GNU General Public License as published by the Free Software
 ! Foundation.
 !
 ! This program is distributed in the hope that it will be useful, but WITHOUT ANY
 ! WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 ! PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! A copy of the GNU General Public License is available at
+! http://www.r-project.org/Licenses/
+!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-! define the following to emit debugging code (only tested in single thread mode)
-!#define debug 1
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!! vsom !!!!!!
 subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     !$ use omp_lib
     implicit none
 
     !!! Input/Output
-    ! neurons are initialized to small random values and then trained.
-    real*4,intent(inout) :: neurons(1:xdim*ydim,1:dtcols)
-
-    !!! Input
-    real*4,intent(in) :: dt(1:dtrows,1:dtcols)
     integer,intent(in) :: dtrows,dtcols,xdim,ydim,train
     real*4,intent(in) :: alpha
+    ! neurons are initialized to small random values and then trained.
+    real*4,intent(inout) :: neurons(1:xdim*ydim,1:dtcols)
+    real*4,intent(in) :: dt(1:dtrows,1:dtcols)
 
     !!! Locals
     ! Note: the neighborhood cache is only valid as long as cache_counter < nsize_step
@@ -53,12 +52,11 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 
     !$OMP THREADPRIVATE(i,ca,c,diff,squ,s,xi,ix_random)
 
-#ifdef debug
-    open(unit=1,file="debug.txt",form="formatted",status="replace",action="write")
-    write(1,*) 'dtrows',dtrows,'dtcols',dtcols,'xdim',xdim,'ydim',ydim,'alpha',alpha,'train',train
-    write(1,*) 'init neuron matrix'
-    call write_array(1,neurons,xdim*ydim,dtcols,'f7.3')
-#endif
+    ! debug
+    ! open(unit=1,file="debug.txt",form="formatted",status="replace",action="write")
+    ! write(1,*) 'dtrows',dtrows,'dtcols',dtcols,'xdim',xdim,'ydim',ydim,'alpha',alpha,'train',train
+    ! write(1,*) 'init neuron matrix'
+    ! call write_array(1,neurons,xdim*ydim,dtcols,'f7.3')
 
     !!! setup
     nsize = max(xdim,ydim) + 1
@@ -79,17 +77,16 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     end do
     !$OMP END DO
 
-
     !!! training !!!
     ! the epochs loop
     !$OMP DO
     do epoch=1,train
 
-#ifdef debug
-        write(1,*) 'Epoch',epoch,'Neighborbood',nsize
-#endif
-        !$OMP CRITICAL step
+        ! debug
+        ! write(1,*) 'Epoch',epoch,'Neighborbood',nsize
+
         ! check if we are at the end of a step
+        !$OMP CRITICAL step
         step_counter = step_counter + 1
         if (step_counter == nsize_step) then
             step_counter = 0
@@ -120,10 +117,9 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
         call Gamma(cache(:,c),cache_valid,coord_lookup,nsize,xdim,ydim,c)
         !$OMP END CRITICAL cache
 
-#ifdef debug
-        write(1,*) 'neighborhood cache for',c
-        call write_array(1,cache(:,c),xdim,ydim,'f2.0')
-#endif
+        ! debug
+        ! write(1,*) 'neighborhood cache for',c
+        ! call write_array(1,cache(:,c),xdim,ydim,'f2.0')
 
         do i=1,dtcols
            where (cache(:,c) > 0.0) 
@@ -133,27 +129,28 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
            endwhere
         enddo
     enddo
-!$OMP END DO
-!$OMP END PARALLEL
+    !$OMP END DO
+    !$OMP END PARALLEL
 
-#ifdef debug
-    write(1,*) 'trained neuron matrix'
-    call write_array(1,neurons,xdim*ydim,dtcols,'f7.3')
-    close(unit=1)
-#endif
+    ! debug
+    ! write(1,*) 'trained neuron matrix'
+    ! call write_array(1,neurons,xdim*ydim,dtcols,'f7.3')
+    ! close(unit=1)
 
     return
 end subroutine vsom
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!! Gamma !!!!!!
 subroutine Gamma(neighborhood,cache_valid,coord_lookup,nsize,xdim,ydim,c)
     implicit none
 
     ! parameters
+    integer,intent(in)    :: nsize,xdim,ydim,c
     real*4,intent(inout)  :: neighborhood(1:xdim*ydim)
     logical,intent(inout) :: cache_valid(1:xdim*ydim)
     integer,intent(in)    :: coord_lookup(1:xdim*ydim,1:2)
-    integer,intent(in)    :: nsize,xdim,ydim,c
 
     ! locals
     integer :: m
@@ -162,9 +159,8 @@ subroutine Gamma(neighborhood,cache_valid,coord_lookup,nsize,xdim,ydim,c)
 
     ! cache is valid - nothing to do
     if (cache_valid(c)) then
-#ifdef debug
-        write(1,*) 'cache hit',xc,yc
-#endif
+        ! debug
+        ! write(1,*) 'cache hit',xc,yc
         return
     endif
 
@@ -183,9 +179,8 @@ subroutine Gamma(neighborhood,cache_valid,coord_lookup,nsize,xdim,ydim,c)
         end if
     end do
 
-#ifdef debug
-    call write_array(1,neighborhood,xdim,ydim,'f2.0')
-#endif
+    ! debug
+    ! call write_array(1,neighborhood,xdim,ydim,'f2.0')
 
     ! cache it
     cache_valid(c) = .true.
@@ -194,15 +189,17 @@ subroutine Gamma(neighborhood,cache_valid,coord_lookup,nsize,xdim,ydim,c)
 end subroutine Gamma
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!! rowsums !!!!!!
 pure subroutine rowsums(s,v,rows,cols)
     implicit none
 
     ! parameters
+    integer,intent(in) :: rows,cols
     real*4,intent(out) :: s(1:rows)
     real*4,intent(in)  :: v(1:rows,1:cols)
-    integer,intent(in) :: rows,cols
 
+    ! locals
     integer :: i
 
     s = 0.0
@@ -214,7 +211,9 @@ pure subroutine rowsums(s,v,rows,cols)
     return
 end subroutine rowsums
 
-!!! convert a 1D rowindex into a 2D map coordinate
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! coord2D - convert a 1D rowindex into a 2D map coordinate !!!
 pure subroutine coord2D(coord,ix,xdim)
     implicit none
 
@@ -227,33 +226,30 @@ pure subroutine coord2D(coord,ix,xdim)
     return
 end subroutine coord2D
 
-#ifdef debug
-!!!!!!!!!!!!!!!!!!!
-!!! debug stuff !!!
-!!!!!!!!!!!!!!!!!!!
+! debug
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! write_array !!!
+! subroutine write_array(unit,a,x,y,efmt)
+!    implicit none
+!
+!    integer,intent(in) :: unit,x,y
+!    real*4,intent(in) :: a(x,y)
+!    character(len=4) :: efmt
+!
+!    integer :: i
+!    character(len=5) :: num
+!    character(len=80) :: fmt
+!
+!    write(num,'(i5)') y
+!    num = trim(num)
+!    efmt = trim(efmt)
+!    fmt = '('//num//efmt//')'
+!
+!    do i=1,x
+!        write(unit,fmt) a(i,:)
+!    enddo
+!
+!    return
+! end subroutine write_array
 
-subroutine write_array(unit,a,x,y,efmt)
-    implicit none
-
-    integer,intent(in) :: unit,x,y
-    real*4,intent(in) :: a(x,y)
-    character(len=4) :: efmt
-
-    integer :: i
-    character(len=5) :: num
-    character(len=80) :: fmt
-
-    write(num,'(i5)') y
-    num = trim(num)
-    efmt = trim(efmt)
-    fmt = '('//num//efmt//')'
-
-    do i=1,x
-        write(unit,fmt) a(i,:)
-    enddo
-
-
-    return
-end subroutine write_array
-#endif
 
