@@ -3,9 +3,8 @@
 # (c) 2009-2016 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #
 # This file constitues a set of routines which are useful in constructing
-# and evaluating self-organizing maps (SOMs).  The utilities are built around
-# the 'som' library available from the CRAN archive (see the package installer
-# and package manager).  The main utilities available in this file are:
+# and evaluating self-organizing maps (SOMs).
+# The main utilities available in this file are:
 #	map.build - constructs a map
 #   map.convergence - reports the map convergence index
 #	map.embedding - reports the embedding of the map in terms of modeling the
@@ -39,15 +38,10 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-### Example
-# source("map-utils.r")
-# data(iris)
-# df <- subset(iris,select=-Species)
-# labels <- subset(iris,select=Species)
-# m <- map.build(df,labels,xdim=15,ydim=10,train=1000)
-# map.convergence(m)
-# map.significance(m)
-# map.starburst(m)
+#  A copy of the GNU General Public License is available at
+#  http://www.r-project.org/Licenses/
+#
+###
 
 # load libraries
 require(som)
@@ -70,7 +64,6 @@ require(graphics)
 #       simple label dataframe as follows: labels <- data.frame(1:nrow(training.data))
 
 # NOTE: default algorithm: "vsom" also available: "som", "experimental", "batchsom"
-
 
 map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algorithm="vsom")
 {
