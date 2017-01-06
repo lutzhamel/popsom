@@ -3,10 +3,11 @@ import(som,class,fields,graphics,stats,grDevices)
 export(
   "map.build",
   "map.convergence",
-  "map.embedding",
-  "map.accuracy",
+  "map.embed",
+  "map.topo”,
   "map.starburst",
   "map.projection",
-  "map.significance"
+  "map.significance”,
+  “map.neuron”
 )
 
