@@ -1,4 +1,5 @@
 \name{popsom-internal}
+\alias{map.normalize}
 \alias{bootstrap}
 \alias{best.match}
 \alias{accuracy}
@@ -9,6 +10,7 @@
 \alias{vsom.r}
 \alias{vsom.f}
 \alias{batchsom.private}\title{Internal popsom functions}\description{  Internal popsom Functions.}\usage{
+map.normalize(x)
 bootstrap(map,conf.int,data.df,k,sample.acc.v)
 best.match(map,obs,full=FALSE)
 accuracy(map,sample,data.ix)
