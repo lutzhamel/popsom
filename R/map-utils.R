@@ -1,24 +1,28 @@
 ### map-utils.R
-# version 4.0
-# (c) 2009-2016 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
+# version 4.1
+# (c) 2009-2017 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #
 # This file constitues a set of routines which are useful in constructing
 # and evaluating self-organizing maps (SOMs).
 # The main utilities available in this file are:
 #	map.build - constructs a map
 #   map.convergence - reports the map convergence index
-#	map.embedding - reports the embedding of the map in terms of modeling the
+#	map.embed - reports the embedding of the map in terms of modeling the
 #                     underlying data distribution (100% if all feature distributions
 #                     are modeled correctly, 0% if none are)
-#   map.accuracy - reports the estimated topographic accuracy
+#   map.topo - reports the estimated topographic accuracy
 #	map.significance - graphically reports the significance of each feature with
 #                      respect to the self-organizing map model
 #	map.starburst - displays the starburst representation of the SOM model, the centers of
 #                   starbursts are the centers of clusters
 #	map.projection - print a table with the associations of labels with map elements
+#   map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
 #
 ### bug fixes
+# lhh - 1/6/17 - changed name to map.embed and map.topo to be consistent with the theory
+#
 # lhh - 6/11/16 - added support for the vectorized version of SOM
+#
 # lhh - 7/14/15 - added the topographic accuracy functionality.
 #
 # lhh - 12/4/13 - added two sample test for mean to the convergence test.
@@ -134,6 +138,10 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
         stop("map.build only supports 'som','vsom','experimental',and 'batchsom'")
     }
     
+    # make the neuron data a data frame
+    neurons <- data.frame(neurons)
+    names(neurons) <- names(data)
+    
     ### construct the map object
     map <- list(data=data,
                 labels=labels,
@@ -176,16 +184,16 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
 
 map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE)
 {
-    embedding <- map.embedding(map,conf.int,verb=FALSE)
-    accuracy <- map.accuracy(map,k,conf.int,verb=FALSE,interval=FALSE)
+    embed <- map.embed(map,conf.int,verb=FALSE)
+    topo <- map.topo(map,k,conf.int,verb=FALSE,interval=FALSE)
     
     if (verb)
-        return (list(embedding=embedding,accuracy=accuracy))
+        return (list(embed=embed,topo=topo))
     else
-        return (0.5*embedding + 0.5*accuracy)
+        return (0.5*embed + 0.5*topo)
 }
 
-### map.embedding - evaluate the embedding of a map using the F-test and
+### map.embed - evaluate the embedding of a map using the F-test and
 #                     a Bayesian estimate of the variance in the training data.
 # parameters:
 # - map is an object if type 'map'
@@ -199,10 +207,10 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE)
 #       maps with convergence of less than 90% are typically not trustworthy.  Of course,
 #       the precise cut-off depends on the noise level in your training data. 
 
-map.embedding <- function(map,conf.int=.95,verb=FALSE)
+map.embed <- function(map,conf.int=.95,verb=FALSE)
 {
 	 if (class(map) != "map")
-		stop("map.embedding: first argument is not a map object.")
+		stop("map.embed: first argument is not a map object.")
 	 
 	 # map.df is a dataframe that contains the neurons
 	 map.df <- data.frame(map$neurons)
@@ -240,7 +248,7 @@ map.embedding <- function(map,conf.int=.95,verb=FALSE)
         var.sum
 }
 
-### map.accuracy - measure the topographic accuracy of the map using sampling
+### map.topo - measure the topographic accuracy of the map using sampling
 #
 # parameters:
 # - map is an object if type 'map'
@@ -252,10 +260,10 @@ map.embedding <- function(map,conf.int=.95,verb=FALSE)
 #
 # - return value is the estimated topographic accuracy
 
-map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
+map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
 {
     if (class(map) != "map")
-        stop("map.accuracy: first argument is not a map object.")
+        stop("map.topo: first argument is not a map object.")
 
     # data.df is a matrix that contains the training data
     data.df <- as.matrix(map$data)
@@ -263,7 +271,7 @@ map.accuracy <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
     # sample map$data
     # TODO: think of something clever here rather than just aborting.
     if (k > nrow(data.df))
-        stop("map.accuracy: sample larger than training data.")
+        stop("map.topo: sample larger than training data.")
     
     data.sample.ix <- sample(1:nrow(data.df),size=k,replace=FALSE)
 
@@ -413,8 +421,40 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 }
 
 
+### map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
+# parameters:
+#   map - the neuron map
+#   x - map x-coordinate of neuron
+#   y - map y-coordinate of neuron
+# return value:
+#   a vector representing the neuron
+
+map.neuron <- function(map,x,y)
+{
+    if (class(map) != "map")
+        stop("map.neuron: first argument is not a map object.")
+
+    ix <- rowix(map,x,y)
+    map$neurons[ix,]
+}
 
 ############################### local functions #################################
+
+# map.normalize -- based on the som:normalize function but preserved names
+
+map.normalize <- function (x, byrow = TRUE)
+{
+    if (is.data.frame(x))
+    {
+        if (byrow)
+            df <- t(apply(x, 1, scale))
+        else
+            df <- apply(x, 2, scale)
+        names(df) <- names(x)
+    }
+    else
+        stop("map.normalize: 'x' is not a dataframe.\n")
+}
 
 
 # bootstrap -- compute the topographic accuracies for the given confidence interval
@@ -1294,12 +1334,16 @@ vsom.r <- function(data,xdim,ydim,alpha,train)
         c(x,y)
     }
     
+    # constants for the Gamma function
+    m <- c(1:nr)                     # a vector with all neuron 1D addresses
+    m2Ds <- matrix(coord2D(m),nr,2)  # x-y coordinate of ith neuron: m2Ds[i,] = c(xi,yi)
+
     ### neighborhood function
     Gamma <- function(c)
     {
-        c2D <- coord2D(c)                       # convert the 1D neuron index into a 2D map index
-        m <- c(1:nr)                            # a vector with all neuron 1D addresses
-        d <- sqrt((((rep(1,nr) %o% c2D) - matrix(coord2D(m),nr,2))^2) %*% c(1,1))    # distance vector
+        c2D <- m2Ds[c,]                          # lookup the 2D map coordinate for c
+        c2Ds <- rep(1,nr) %o% c2D                # a matrix with each row equal to c2D
+        d <- sqrt((c2Ds - m2Ds)^2 %*% c(1,1))    # distance vector of each neuron from c in terms of map coords!
         hood <- ifelse(d < nsize*1.5,alpha,0.0)  # if m on the grid is in neigh then alpha else 0.0
 
         as.vector(hood)
