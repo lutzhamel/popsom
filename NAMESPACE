@@ -4,11 +4,11 @@ export(
   "map.build",
   "map.convergence",
   "map.embed",
-  "map.topo”,
+  "map.topo",
   "map.starburst",
   "map.projection",
-  "map.significance”,
-  “map.neuron”,
-  “map.marginal”
+  "map.significance",
+  "map.neuron",
+  "map.marginal"
 )
 
