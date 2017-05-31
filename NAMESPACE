@@ -1,5 +1,5 @@
 useDynLib(popsom)
-import(som,class,fields,graphics,stats,grDevices)
+import(som,class,fields,graphics,ggplot2)
 export(
   "map.build",
   "map.convergence",
@@ -8,6 +8,7 @@ export(
   "map.starburst",
   "map.projection",
   "map.significance”,
-  “map.neuron”
+  “map.neuron”,
+  “map.marginal”
 )
 

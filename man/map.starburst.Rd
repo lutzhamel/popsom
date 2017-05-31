@@ -3,12 +3,14 @@
 \title{Generate Starburst For Map}
 \description{Computes and displays the starburst representation of clusters on a map.}
 \usage{
-map.starburst(map, explicit = FALSE, smoothing = 2)
+map.starburst(map, explicit = FALSE, smoothing = 2, merge.clusters=TRUE, merge.range=.25)
 }
 \arguments{
   \item{map}{an object of type 'map'.}
   \item{explicit}{controls the shape of the connected components.}
   \item{smoothing}{controls the smoothing level of the map display (NULL, 0, >0).}
+  \item{merge.clusters}{is a switch that controls if the starburst clusters are merged together}
+  \item{merge.range}{is a range that is used as a percentage of a certain distance in the code to determine whether components are closer to their centroids or centroids closer to each other.}
 }
 
 \references{
@@ -17,7 +19,7 @@ Lutz Hamel and Chris W. Brown. Proceeding of the 7th International Conference on
 Data Mining (DMIN'11), July 18-21, 2011, Las Vegas Nevada, USA, ISBN: 1-60132-168-6, pp338-343, 
 CSREA Press, 2011.
 }
-\author{Lutz Hamel, Benjamin Ott, Gregory Breard}
+\author{Lutz Hamel, Benjamin Ott, Gregory Breard, Robert Tatoian, Vishakh Gopu}
 \examples{
 data(iris)
 
