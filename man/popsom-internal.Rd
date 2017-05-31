@@ -24,7 +24,7 @@
 \alias{new.centroid}\title{Internal popsom functions}\description{  Internal popsom Functions.}\usage{
 map.embed.vm(map,conf.int=.95,verb=FALSE)
 map.embed.ks(map,conf.int=.95,verb=FALSE) 
-map.normalize(x)
+map.normalize(x, byrow = TRUE)
 bootstrap(map,conf.int,data.df,k,sample.acc.v)
 best.match(map,obs,full=FALSE)
 accuracy(map,sample,data.ix)
