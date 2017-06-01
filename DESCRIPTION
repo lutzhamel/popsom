@@ -9,6 +9,6 @@ Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "hamel@cs.u
              person("Vishakh", "Gopu", role = "aut"))
 Maintainer: Lutz Hamel <hamel@cs.uri.edu>
 Imports: som,class,fields, graphics, ggplot2	
-Description: State of the art functions for constructing and evaluating self-organizing maps (SOMs).
+Description: State of the art functions for constructing and evaluating self-organizing maps.
 License: GPL
 URL: http://homepage.cs.uri.edu/faculty/hamel/

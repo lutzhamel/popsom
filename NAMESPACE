@@ -1,5 +1,8 @@
-useDynLib(popsom)
+useDynLib(popsom, .registration = TRUE)
 import(som,class,fields,graphics,ggplot2)
+importFrom("grDevices", "heat.colors")
+importFrom("stats", "dist", "ks.test", "runif", "t.test", "var", "var.test")
+importFrom("utils", "combn")
 export(
   "map.build",
   "map.convergence",
