@@ -1,6 +1,6 @@
 ### map-utils.R
-# version 4.2
-# (c) 2009-2017 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
+# version 4.3
+# (c) 2009-2020 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #               with Robert Tatoian and Vishakh Gopu
 #
 # This file constitues a set of routines which are useful in constructing
@@ -291,7 +291,7 @@ map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
 #                 to determine whether components are closer to their centroids or
 #                 centroids closer to each other.
 
-map.starburst <- function(map,explicit=FALSE,smoothing=2,merge.clusters=TRUE,merge.range=.25)
+map.starburst <- function(map,explicit=FALSE,smoothing=2,merge.clusters=FALSE,merge.range=.25)
 {
 
 	if (class(map) != "map")
@@ -1539,7 +1539,7 @@ vsom.f <- function(data,xdim,ydim,alpha,train)
                        as.integer(ydim),
                        as.single(alpha),
                        as.integer(train),
-                       package="vsom")
+                       PACKAGE="popsom")
 
     # unpack the structure and list in result[1]
     v <- result[1]
@@ -1878,3 +1878,82 @@ new.centroid <- function(bmat, centroids, unique.centroids, map){
   }
   components
 }
+
+
+avg.homogeneity <- function(map,explicit=FALSE,smoothing=2,merge=FALSE,merge.range=.25)
+{
+    ### keep an unaltered copy of the unified distance matrix,
+    ### required for merging the starburst clusters
+    umat <- compute.umat(map,smoothing=smoothing)
+
+    x <- map$xdim
+    y <- map$ydim
+    nobs <- nrow(map$data)
+    centroid.labels <- array(data=list(),dim=c(x,y))
+
+    ### need to make sure the map doesn't have a dimension of 1
+    if (x <= 1 || y <= 1)
+    {
+        stop("avg.homogeneity: map dimensions too small")
+    }
+
+    if (is.null(map$labels))
+    {
+	stop("avg.homogeneity: you need to attach labels to the map")
+    }
+	
+   if(!merge)
+   {
+     # find the centroid for each neuron on the map
+     centroids <- compute.centroids(map,umat,explicit)
+   } 
+   else 
+   {
+     # find the unique centroids for the neurons on the map
+      centroids <- compute.combined.clusters(map,umat,explicit,merge.range)
+   }
+
+
+    ### attach labels to centroids
+    # count the labels in each map cell
+    for(i in 1:nobs)
+    {
+        lab <- as.character(map$labels[i,1])
+        nix <- map$visual[i]
+        c <- coordinate(map,nix)
+        ix <- c[1]
+        iy <- c[2]
+        cx <- centroids$centroid.x[ix,iy]
+        cy <- centroids$centroid.y[ix,iy]
+        centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
+     }
+
+    ### compute average homogeneity of the map: h = (1/nobs)*sum_c majority.lahbel_c
+    sum.majority <- 0
+    n.centroids <- 0
+
+    for (ix in 1:x)
+    {
+	for (iy in 1:y)
+        {
+	    label.v <- centroid.labels[[ix,iy]]
+	    if (length(label.v)!=0)
+	    {
+		n.centroids <- n.centroids + 1
+		majority <- data.frame(sort(table(label.v),decreasing=TRUE))
+
+		if (nrow(majority) == 1) # only one label
+		{
+		   m.val <- length(label.v)
+		}
+		else
+		{
+		   m.val <- majority[1,2]
+		}
+		sum.majority <- sum.majority + m.val
+	    }
+	}
+    }
+    list(homog=sum.majority/nobs, nclust=n.centroids)
+}
+
