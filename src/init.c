@@ -1,16 +1,13 @@
-#include <R_ext/RS.h>
-#include <stdlib.h> // for NULL
+include <R_ext/RS.h>
+#include <stdlib.h> // for NULL                                                            
 #include <R_ext/Rdynload.h>
 
-/* FIXME: 
-   Check these declarations against the C/Fortran source code.
-*/
-
 /* .Fortran calls */
-extern void F77_NAME(vsom)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(vsom)(float *neurons, const float *dt, const int *dtrows, const int *\
+dtcols, const int *xdim, const int *ydim, const float *alpha, const int *train);
 
 static const R_FortranMethodDef FortranEntries[] = {
-    {"vsom", (DL_FUNC) &F77_NAME(vsom), 9},
+    {"vsom", (DL_FUNC) &F77_NAME(vsom), 8},
     {NULL, NULL, 0}
 };
 
