@@ -1,6 +1,3 @@
-### Release 4.2
+### Release 4.3
 
-- supports the Kolgomorov-Smirnov convergence test.
-- supports merging of clusters on the map that are close by
-- supports marginal distribution plots
-
+- introduced a decaying alpha value for the VSOM algorithm.
