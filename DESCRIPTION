@@ -1,14 +1,15 @@
 Package: popsom
-Version: 4.2
-Date: 2017-05-31
+Version: 4.3.0
+Date: 2020-07-13
 Title: Functions for Constructing and Evaluating Self-Organizing Maps
-Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "hamel@cs.uri.edu"),
-             person("Benjamin", "Ott", role = "aut"), 
-             person("Gregory", "Breard", role = "aut"), 
-             person("Robert", "Tatoian", role = "aut"), 
+Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
+             person("Benjamin", "Ott", role = "aut"),
+             person("Gregory", "Breard", role = "aut"),
+             person("Robert", "Tatoian", role = "aut"),
+             person("Michael", "Eiger", role = "aut"),
              person("Vishakh", "Gopu", role = "aut"))
-Maintainer: Lutz Hamel <hamel@cs.uri.edu>
-Imports: som,class,fields, graphics, ggplot2	
-Description: State of the art functions for constructing and evaluating self-organizing maps.
+Maintainer: Lutz Hamel <lutzhamel@uri.edu>
+Imports: som,class,fields, graphics, ggplot2
+Description: State-of-the-art functions for constructing and evaluating self-organizing maps.
 License: GPL
-URL: http://homepage.cs.uri.edu/faculty/hamel/
+URL: https://github.com/lutzhamel/popsom
