@@ -18,6 +18,10 @@ map.topo(map,k=50,conf.int = 0.95,verb=FALSE,interval=TRUE)
 	2) The low value of the confidence interval and the high value of the confidence interval 'conf.int' if interval=TRUE.  
 	3) If verb=TRUE then map.accuracy will return a vector with the accuracies of the individual k samples.
 		}
+\note{map.topo has been deprecated as of this release (version 4.3.0) of the popsom package for R. map.topo has also been flagged for removal upon release of the next version of the popsom package.
+
+The use of map.convergence, also available in the popsom package, with the argument 'verb = True' is now encouraged to explicitly compute the estimated topographic accuracy of maps in future popsom package releases.
+}
 \references{
 "SOM Quality Measures: A Statistical Approach," 
 Lutz Hamel, WSOM16, 2016'. 
