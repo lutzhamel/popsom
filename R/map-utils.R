@@ -1,5 +1,5 @@
 ### map-utils.R
-# version 4.3
+# version 4.3.0
 # (c) 2009-2020 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #               with Robert Tatoian, Vishakh Gopu, Miachael Eiger
 #
@@ -173,7 +173,7 @@ map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algori
 #
 # - return value is the convergence index
 
-map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = FALSE)
+map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 {
     if (ks)
       embed <- map.embed.ks(map,conf.int,verb=FALSE)
