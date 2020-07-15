@@ -1,7 +1,7 @@
 ### map-utils.R
 # version 4.3.0
 # (c) 2009-2020 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
-#               with Robert Tatoian, Vishakh Gopu, Miachael Eiger
+#               with Robert Tatoian, Vishakh Gopu, and Michael Eiger
 #
 # This file constitues a set of routines which are useful in constructing
 # and evaluating self-organizing maps (SOMs).
@@ -203,6 +203,12 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 #       the precise cut-off depends on the noise level in your training data.
 map.embed <- function(map,conf.int=.95,verb=FALSE,ks=FALSE)
 {
+	
+  .Deprecated(new = 'map.convergence', package = 'popsom', 
+  msg = '"map.embed" is being deprecated and has been flagged for removal in the next release of the popsom package. 
+Please consider using "map.convergence" with the argument verb = True to explicitly determine the embedding 
+accuracy of the map.')	
+
     if (ks)
         map.embed.ks(map,conf.int,verb)
     else
@@ -223,6 +229,12 @@ map.embed <- function(map,conf.int=.95,verb=FALSE,ks=FALSE)
 
 map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
 {
+	
+  .Deprecated(new = 'map.convergence', package = 'popsom', 
+  msg = '"map.topo" is being deprecated and has been flagged for removal in the next release of the popsom package. 
+Please consider using "map.convergence" with the argument verb = True to explicitly determine the estimated topographic 
+accuracy of the map.')
+	
     if (class(map) != "map")
         stop("map.topo: first argument is not a map object.")
 
@@ -294,6 +306,9 @@ map.starburst <- function(map,explicit=FALSE,smoothing=2,merge.clusters=FALSE,me
 
 map.projection <- function(map)
 {
+	
+.Deprecated(package = 'popsom', msg = '"map.projection" is being deprecated and has been flagged for removal in the next release of the popsom package.')
+	
 	if (class(map) != "map")
 		stop("map.projection: first argument is not a map object.")
 
@@ -457,6 +472,7 @@ map.marginal <- function(map,marginal)
 
 map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
 {
+	
     if (class(map) != "map")
         stop("map.embed: first argument is not a map object.")
 
@@ -500,7 +516,7 @@ map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
 # map.embed using the kolgomorov-smirnov test
 
 map.embed.ks <- function(map,conf.int=.95,verb=FALSE) {
-
+	
     if (class(map) != "map") {
         stop("map.embed: first argument is not a map object.")
     }
