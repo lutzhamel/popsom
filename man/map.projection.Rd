@@ -9,6 +9,8 @@ map.projection(map)
   \item{map}{an object of type 'map'.}
 }
 \value{a dataframe containing the projection onto the map for each training observation.}
+\note{map.projection has been deprecated as of this release (version 4.3.0) of the popsom package for R. map.projection has also been flagged for removal upon release of the next version of the popsom package.
+}
 \author{Lutz Hamel, Benjamin Ott, Gregory Breard}
 \examples{
 data(iris)
