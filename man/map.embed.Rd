@@ -14,7 +14,10 @@ map.embed(map, conf.int = 0.95, verb=FALSE, ks=FALSE)
 \value{The embedding accuracy of the map.
 	If the switch verb=TRUE then a vector of the individual feature embedding accuracies are returned.
 	}
+\note{Map.embed has been deprecated as of this release (version 4.3.0) of the popsom package for R. Map.embed has also been flagged for removal upon release of the next version of the popsom package.
 
+The use of map.convergence, also available in the popsom package, with the argument 'verb = True' is now encouraged to explicitly compute the embedding accuracy of maps in future popsom package releases.
+}
 \references{
 "A Population Based Convergence Criterion for Self-Organizing Maps," 
 Lutz Hamel and Benjamin Ott. Proceeding of the 2012 International Conference on Data Mining (DMIN'12), 
