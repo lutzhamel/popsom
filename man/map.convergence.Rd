@@ -3,7 +3,7 @@
 \title{SOM Quality Assessment}
 \description{Evaluate the quality of a SOM using embedding accuracy and estimated topographical accuracy.}
 \usage{
-map.convergence(map,conf.int=.95,k=50,verb=FALSE,ks=FALSE)
+map.convergence(map,conf.int=.95,k=50,verb=FALSE,ks=TRUE)
 }
 \arguments{
   \item{map}{an object of type 'map'.}
