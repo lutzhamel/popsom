@@ -89,7 +89,7 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
 
         do i=1,dtcols
            where (cache(:,c) > 0.0)
-              neurons(:,i) = neurons(:,i) - alpha * diff(:,i)
+              neurons(:,i) = neurons(:,i) - (1.0 - real(epoch, kind=4)/real(train, kind=4)) * alpha * diff(:,i)
            endwhere
         enddo
     enddo
