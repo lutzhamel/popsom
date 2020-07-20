@@ -1,4 +1,4 @@
-\name{popsom-deprecated {popsom}}
+\name{popsom-deprecated}
 \alias{popsom-deprecated}
 \title{
 Deprecated Functions in Package popsom (4.3.0)
