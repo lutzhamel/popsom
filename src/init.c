@@ -1,4 +1,4 @@
-include <R_ext/RS.h>
+#include <R_ext/RS.h>
 #include <stdlib.h> // for NULL                                                            
 #include <R_ext/Rdynload.h>
 
