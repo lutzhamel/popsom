@@ -1,0 +1,6 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+
+if (FALSE) {
+use_build_ignore("[.]md$", escape = FALSE)
+}
