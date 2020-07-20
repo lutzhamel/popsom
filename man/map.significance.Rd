@@ -35,3 +35,4 @@ data.frame(names(df),map.significance(m,graphics=FALSE))
 ## display the relative feature significance graphically
 map.significance(m)
 }
+       
