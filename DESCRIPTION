@@ -1,6 +1,6 @@
 Package: popsom
 Version: 4.3.0
-Date: 2020-07-13
+Date: 2020-07-22
 Title: Functions for Constructing and Evaluating Self-Organizing Maps
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
              person("Benjamin", "Ott", role = "aut"),
@@ -10,6 +10,10 @@ Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@
              person("Vishakh", "Gopu", role = "aut"))
 Maintainer: Lutz Hamel <lutzhamel@uri.edu>
 Imports: som,class,fields, graphics, ggplot2
-Description: State-of-the-art functions for constructing and evaluating self-organizing maps.
+Description: A self-organizing map package with three distinguishing features:
+(1) Automatic cluster centroid detection and visualization using starbursts.
+(2) Convergence index, a statistical quality measure based on the linear combination of map embedding and
+estimated topographic accuracy.
+(3) A very efficient stochastic training algorithm based on ideas from tensor algebra.
 License: GPL
 URL: https://github.com/lutzhamel/popsom
