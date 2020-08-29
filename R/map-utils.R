@@ -1,5 +1,5 @@
 ### map-utils.R
-# version 4.3.0
+# version 4.3.1
 # (c) 2009-2020 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
 #               with Robert Tatoian, Vishakh Gopu, and Michael Eiger
 #
@@ -180,7 +180,7 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
     else
       embed <- map.embed.vm(map,conf.int,verb=FALSE)
 
-    topo <- map.topo(map,k,conf.int,verb=FALSE,interval=FALSE)
+    topo <- map.topo.private(map,k,conf.int,verb=FALSE,interval=FALSE)
 
     if (verb)
         return (list(embed=embed,topo=topo))
@@ -203,11 +203,11 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 #       the precise cut-off depends on the noise level in your training data.
 map.embed <- function(map,conf.int=.95,verb=FALSE,ks=FALSE)
 {
-	
-  .Deprecated(new = 'map.convergence', package = 'popsom', 
-  msg = '"map.embed" is being deprecated and has been flagged for removal in the next release of the popsom package. 
-Please consider using "map.convergence" with the argument verb = True to explicitly determine the embedding 
-accuracy of the map.')	
+
+  .Deprecated(new = 'map.convergence', package = 'popsom',
+  msg = '"map.embed" is being deprecated and has been flagged for removal in the next release of the popsom package.
+Please consider using "map.convergence" with the argument verb = True to explicitly determine the embedding
+accuracy of the map.')
 
     if (ks)
         map.embed.ks(map,conf.int,verb)
@@ -226,55 +226,14 @@ accuracy of the map.')
 # - interval is a switch that controls whether the confidence interval is computed.
 #
 # - return value is the estimated topographic accuracy
-
 map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
 {
-	
-  .Deprecated(new = 'map.convergence', package = 'popsom', 
-  msg = '"map.topo" is being deprecated and has been flagged for removal in the next release of the popsom package. 
-Please consider using "map.convergence" with the argument verb = True to explicitly determine the estimated topographic 
+  .Deprecated(new = 'map.convergence', package = 'popsom',
+  msg = '"map.topo" is being deprecated and has been flagged for removal in the next release of the popsom package.
+Please consider using "map.convergence" with the argument verb = True to explicitly determine the estimated topographic
 accuracy of the map.')
-	
-    if (class(map) != "map")
-        stop("map.topo: first argument is not a map object.")
 
-    # data.df is a matrix that contains the training data
-    data.df <- as.matrix(map$data)
-
-    # sample map$data
-    # TODO: think of something clever here rather than just aborting.
-    if (k > nrow(data.df))
-        stop("map.topo: sample larger than training data.")
-
-    data.sample.ix <- sample(1:nrow(data.df),size=k,replace=FALSE)
-
-    # compute the sum topographic accuracy - the accuracy of a single sample
-    # is 1 if the best matching unit is a neighbor otherwise it is 0
-    acc.v <- c()
-    for (i in 1:k)
-    {
-        acc.v <- c(acc.v,accuracy(map,data.df[data.sample.ix[i],],data.sample.ix[i]))
-    }
-
-    # compute the confidence interval values using the bootstrap
-    if (interval)
-        bval <- bootstrap(map,conf.int,data.df,k,acc.v)
-
-    # the sum topographic accuracy is scaled by the number of samples - estimated
-    # topographic accuracy
-    if (verb)
-    {
-        acc.v
-    }
-    else
-    {
-        val <- sum(acc.v)/k
-        if (interval)
-            list(val=val,lo=bval$lo,hi=bval$hi)
-        else
-            val
-
-    }
+  map.topo.private(map,k,conf.int,verb,interval)
 }
 
 ### map.starburst - compute and display the starburst representation of clusters
@@ -306,9 +265,9 @@ map.starburst <- function(map,explicit=FALSE,smoothing=2,merge.clusters=FALSE,me
 
 map.projection <- function(map)
 {
-	
+
 .Deprecated(package = 'popsom', msg = '"map.projection" is being deprecated and has been flagged for removal in the next release of the popsom package.')
-	
+
 	if (class(map) != "map")
 		stop("map.projection: first argument is not a map object.")
 
@@ -468,11 +427,57 @@ map.marginal <- function(map,marginal)
 
 ############################### local functions #################################
 
+map.topo.private <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
+{
+
+
+    if (class(map) != "map")
+        stop("map.topo: first argument is not a map object.")
+
+    # data.df is a matrix that contains the training data
+    data.df <- as.matrix(map$data)
+
+    # sample map$data
+    # TODO: think of something clever here rather than just aborting.
+    if (k > nrow(data.df))
+        stop("map.topo: sample larger than training data.")
+
+    data.sample.ix <- sample(1:nrow(data.df),size=k,replace=FALSE)
+
+    # compute the sum topographic accuracy - the accuracy of a single sample
+    # is 1 if the best matching unit is a neighbor otherwise it is 0
+    acc.v <- c()
+    for (i in 1:k)
+    {
+        acc.v <- c(acc.v,accuracy(map,data.df[data.sample.ix[i],],data.sample.ix[i]))
+    }
+
+    # compute the confidence interval values using the bootstrap
+    if (interval)
+        bval <- bootstrap(map,conf.int,data.df,k,acc.v)
+
+    # the sum topographic accuracy is scaled by the number of samples - estimated
+    # topographic accuracy
+    if (verb)
+    {
+        acc.v
+    }
+    else
+    {
+        val <- sum(acc.v)/k
+        if (interval)
+            list(val=val,lo=bval$lo,hi=bval$hi)
+        else
+            val
+
+    }
+}
+
 # map.embed using variance and mean tests
 
 map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
 {
-	
+
     if (class(map) != "map")
         stop("map.embed: first argument is not a map object.")
 
@@ -516,7 +521,7 @@ map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
 # map.embed using the kolgomorov-smirnov test
 
 map.embed.ks <- function(map,conf.int=.95,verb=FALSE) {
-	
+
     if (class(map) != "map") {
         stop("map.embed: first argument is not a map object.")
     }
