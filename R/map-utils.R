@@ -12,7 +12,6 @@
 #                     respect to the self-organizing map model
 # map.starburst ----- displays the starburst representation of the SOM model, the centers of
 #                     starbursts are the centers of clusters
-# map.neuron -------- returns the contents of a neuron at (x,y) on the map as a vector
 # map.marginal ------ displays a density plot of a training dataframe dimension overlayed
 #                      with the neuron density for that same dimension or index.
 #
@@ -54,17 +53,24 @@ require(ggplot2)
 
 # NOTE: default algorithm: "vsom" also available: "som", "experimental", "batchsom"
 
-map.build <- function(data,labels=NULL,xdim=10,ydim=5,alpha=.3,train=1000,algorithm="vsom",normalize=TRUE)
+map.build <- function(data,
+                      labels=NULL,
+                      xdim=10,
+                      ydim=5,
+                      alpha=.3,
+                      train=1000,
+                      algorithm="vsom",
+                      normalize=TRUE)
 {
+  # check if the dims are reasonable
+	if (xdim < 3 || ydim < 3)
+		stop("map.build: map is too small.")
+
   if (normalize)
     data <- map.normalize(data)
 
   # pmatch: som == 1, vsom == 2, experimental == 3, batchsom == 4
   algorithms = c("som","vsom","experimental","batchsom")
-
-	# check if the dims are reasonable
-	if (xdim < 3 || ydim < 3)
-		stop("map.build: map is too small.")
 
   # train the map - returns a list of neurons
   if (pmatch(algorithm,algorithms,nomatch=0) == 1) # som
@@ -184,18 +190,14 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 # parameters:
 # - map is an object if type 'map'
 # - explicit controls the shape of the connected components
-# - merge.clusters is a switch that controls if the starburst clusters are merged together
-# - merge.range - a range that is used as a percentage of a certain distance in the code
-#                 to determine whether components are closer to their centroids or
-#                 centroids closer to each other.
 
-map.starburst <- function(map,explicit=FALSE,merge.clusters=FALSE,merge.range=.25)
+map.starburst <- function(map,explicit=FALSE)
 {
 
 	if (class(map) != "map")
 		stop("map.starburst: first argument is not a map object.")
 
-	plot.heat(map,explicit=explicit,comp=TRUE,merge=merge.clusters,merge.range=merge.range)
+	plot.heat(map,explicit=explicit,comp=TRUE)
 }
 
 ### map.significance - compute the relative significance of each feature and plot it
@@ -261,23 +263,6 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 }
 
 
-### map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
-# parameters:
-#   map - the neuron map
-#   x - map x-coordinate of neuron
-#   y - map y-coordinate of neuron
-# return value:
-#   a vector representing the neuron
-
-map.neuron <- function(map,x,y)
-{
-    if (class(map) != "map")
-        stop("map.neuron: first argument is not a map object.")
-
-    ix <- rowix(map,x,y)
-    map$neurons[ix,]
-}
-
 
 ### map.marginal - plot that shows the marginal probability distribution of the neurons and data
 # parameters:
@@ -327,6 +312,23 @@ map.marginal <- function(map,marginal)
 }
 
 ############################### local functions #################################
+
+### map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
+# parameters:
+#   map - the neuron map
+#   x - map x-coordinate of neuron
+#   y - map y-coordinate of neuron
+# return value:
+#   a vector representing the neuron
+
+map.neuron <- function(map,x,y)
+{
+    if (class(map) != "map")
+        stop("map.neuron: first argument is not a map object.")
+
+    ix <- rowix(map,x,y)
+    map$neurons[ix,]
+}
 
 # for each observation i, visual has an entry for
 # the best matching neuron
@@ -505,42 +507,42 @@ map.normalize <- function (x, byrow = TRUE)
 
 bootstrap <- function(map,conf.int,data.df,k,sample.acc.v)
 {
-    ix <- as.integer(100 - conf.int*100)
-    bn <- 200
+  ix <- as.integer(100 - conf.int*100)
+  bn <- 200
 
-    bootstrap.acc.v <- c(sum(sample.acc.v)/k)
+  bootstrap.acc.v <- c(sum(sample.acc.v)/k)
 
-    for (i in 2:bn)
-    {
-        bs.v <- sample(1:k,size=k,replace=TRUE)
-        a <- sum(sample.acc.v[bs.v])/k
-        bootstrap.acc.v <- c(bootstrap.acc.v,a)
-    }
+  for (i in 2:bn)
+  {
+      bs.v <- sample(1:k,size=k,replace=TRUE)
+      a <- sum(sample.acc.v[bs.v])/k
+      bootstrap.acc.v <- c(bootstrap.acc.v,a)
+  }
 
-    bootstrap.acc.sort.v <- sort(bootstrap.acc.v)
+  bootstrap.acc.sort.v <- sort(bootstrap.acc.v)
 
-    lo.val <- bootstrap.acc.sort.v[ix]
-    hi.val <- bootstrap.acc.sort.v[bn-ix]
+  lo.val <- bootstrap.acc.sort.v[ix]
+  hi.val <- bootstrap.acc.sort.v[bn-ix]
 
-    list(lo=lo.val,hi=hi.val)
+  list(lo=lo.val,hi=hi.val)
 }
 
 # best.match -- given observation obs, return the best matching neuron
 
 best.match <- function(map,obs,full=FALSE)
 {
-    # NOTE: replicate obs so that there are nr rows of obs
-    obs.m <- matrix(as.numeric(obs),nrow(map$neurons),ncol(map$neurons),byrow=TRUE)
-    diff <- map$neurons - obs.m
-    squ <- diff * diff
-    s <- rowSums(squ)
-    d <- sqrt(s)
-    o <- order(d)
+  # NOTE: replicate obs so that there are nr rows of obs
+  obs.m <- matrix(as.numeric(obs),nrow(map$neurons),ncol(map$neurons),byrow=TRUE)
+  diff <- map$neurons - obs.m
+  squ <- diff * diff
+  s <- rowSums(squ)
+  d <- sqrt(s)
+  o <- order(d)
 
-    if (full)
-        o
-    else
-        o[1]
+  if (full)
+    o
+  else
+    o[1]
 }
 
 # accuracy -- the topographic accuracy of a single sample is 1 is the best matching unit
@@ -630,12 +632,8 @@ map.graphics.reset <- function(par.vector)
 # - labels is a vector with labels of the original training data set
 # - explicit controls the shape of the connected components
 # - comp controls whether we plot the connected components on the heat map
-# - merge controls whether we merge the starbursts together.
-# - merge.range - a range that is used as a percentage of a certain distance in the code
-#                 to determine whether components are closer to their centroids or
-#                 centroids closer to each other.
 
-plot.heat <- function(map,explicit=FALSE,comp=TRUE,merge=FALSE,merge.range)
+plot.heat <- function(map,explicit=FALSE,comp=TRUE)
 {
 	x <- map$xdim
 	y <- map$ydim
@@ -684,16 +682,8 @@ plot.heat <- function(map,explicit=FALSE,comp=TRUE,merge=FALSE,merge.range)
 	### put the connected component lines on the map
 	if (comp)
   {
-	  if(!merge)
-    {
-		  # find the centroid for each neuron on the map
-		  centroids <- compute.centroids(map,explicit)
-	  }
-    else
-    {
-	    # find the unique centroids for the neurons on the map
-	    centroids <- compute.combined.clusters(map,map$heat,explicit,merge.range)
-	  }
+	  # find the centroid for each neuron on the map
+	  centroids <- compute.centroids(map,explicit)
     # connect each neuron to its centroid
 		for(ix in 1:x)
     {
@@ -704,44 +694,24 @@ plot.heat <- function(map,explicit=FALSE,comp=TRUE,merge=FALSE,merge.range)
 				points(c(ix,cx)-.5,c(iy,cy)-.5,type="l",col="grey")
 			}
 		}
-	}
 
-	### put the labels on the map if available
-  if (!is.null(map$labels))
-  {
-    # count the labels in each map cell
-    for(i in 1:nobs)
+    # put majority labels on the centroids
+    if (!is.null(map$labels))
     {
-      nix <- map$visual[i]
-      c <- coordinate(map,nix)
-      ix <- c[1]
-      iy <- c[2]
-
-      count[ix,iy] <- count[ix,iy]+1
-    }
-
-    #count.df <- data.frame(count)
-    #print(count.df)
-
-    for(i in 1:nobs)
-    {
-      c <- coordinate(map,map$visual[i])
-      #cat("Coordinate of ",i," is ",c,"\n")
-      ix <- c[1]
-      iy <- c[2]
-      # we only print one label per cell
-      # TODO: print out majority label
-      if (count[ix,iy] > 0)
+      centroid.labels <- majority.labels(map)
+      for(ix in 1:x)
       {
-        count[ix,iy] <- 0
-        ix <- ix - .5
-        iy <- iy - .5
-        l <- map$labels[i,1]
-        text(ix,iy,labels=l)
+        for (iy in 1:y)
+        {
+          lab.l <- centroid.labels[[ix,iy]]
+          if (length(lab.l)!=0)
+          {
+            text(ix-.5,iy-.5,labels=lab.l[1])
+          }
+        }
       }
     }
-  }
-
+	}
 	map.graphics.reset(par.v)
 }
 
@@ -1492,25 +1462,6 @@ batchsom.private <- function(data,grid,min.radius,max.radius,train,init,radius.t
     list(classif=cl,codes=init,grid=grid)
 }
 
-#Functions to Combine connected components that represent the same cluster
-##### TOP LEVEL FOR DISTANCE MATRIX ORIENTED CLUSTER COMBINE####
-
-compute.combined.clusters <- function(map,heat,explicit,range) {
-  # compute the connected components
-  centroids <- compute.centroids(map,explicit)
-  #Get unique centroids
-  unique.centroids <- get.unique.centroids(map, centroids)
-  #Get distance from centroid to cluster elements for all centroids
-  within_cluster_dist <- distance.from.centroids(map, centroids, unique.centroids, heat)
-  #Get average pairwise distance between clusters
-  between_cluster_dist <- distance.between.clusters(map, centroids, unique.centroids, heat)
-  #Get a boolean matrix of whether two components should be combined
-  combine_cluster_bools <- combine.decision(within_cluster_dist, between_cluster_dist, range)
-  #Create the modified connected components grid
-  new_centroid <- new.centroid(combine_cluster_bools, centroids, unique.centroids, map)
-
-  new_centroid
-}
 
 ### get.unique.centroids -- a function that computes a list of unique centroids from
 #                           a matrix of centroid locations.
@@ -1545,100 +1496,6 @@ get.unique.centroids <- function(map, centroids){
   list(position.x=xlist, position.y=ylist)
 }
 
-### distance.from.centroids -- A function to get the average distance from
-#                              centroid by cluster.
-# parameters:
-# - map is an object of type 'map'
-# - centroids - a matrix of the centroid locations in the map
-# - unique.centroids - a list of unique centroid locations
-# - heat is a unified distance matrix
-distance.from.centroids <- function(map, centroids, unique.centroids, heat){
-  xdim <- map$xdim
-  ydim <- map$ydim
-  centroids.x.positions <- unique.centroids$position.x
-  centroids.y.positions <- unique.centroids$position.y
-  within <- c()
-
-  for (i in 1:length(centroids.x.positions)){
-    cx <- centroids.x.positions[i]
-    cy <- centroids.y.positions[i]
-
-    # compute the average distance
-    distance <- cluster.spread(cx, cy, heat, centroids, map)
-
-    # append the computed distance to the list of distances
-    within <- c(within, distance)
-  }
-
-  # return the list
-  within
-}
-
-### cluster.spread -- Function to calculate the average distance in
-#                     one cluster given one centroid.
-#
-# parameters:
-# - x - x position of a unique centroid
-# - y - y position of a unique centroid
-# - umat - a unified distance matrix
-# - centroids - a matrix of the centroid locations in the map
-# - map is an object of type 'map'
-cluster.spread <- function(x, y, umat, centroids, map){
-  centroid.x <- x
-  centroid.y <- y
-  sum <- 0
-  elements <- 0
-  xdim <- map$xdim
-  ydim <- map$ydim
-  centroid_weight <- umat[centroid.x, centroid.y]
-  for(xi in 1:xdim){
-    for(yi in 1:ydim){
-      cx <- centroids$centroid.x[xi, yi]
-      cy <- centroids$centroid.y[xi, yi]
-      if(cx == centroid.x && cy == centroid.y){
-        cweight <- umat[xi,yi]
-        sum <- sum + abs(cweight - centroid_weight)
-        elements <- elements + 1
-      }
-    }
-  }
-
-  average <- sum / elements
-  average
-}
-
-### distance.between.clusters -- A function to compute the average pairwise
-#                                distance between clusters.
-#
-# parameters:
-# - map is an object of type 'map'
-# - centroids - a matrix of the centroid locations in the map
-# - unique.centroids - a list of unique centroid locations
-# - umat - a unified distance matrix
-distance.between.clusters <- function(map, centroids, unique.centroids, umat){
-  cluster_elements <- list.clusters(map, centroids, unique.centroids, umat)
-  cluster_elements <- sapply(cluster_elements,'[',seq(max(sapply(cluster_elements,length))))
-
-  columns <- ncol(cluster_elements)
-
-  cluster_elements <- matrix(unlist(cluster_elements),ncol = ncol(cluster_elements),byrow = FALSE)
-  cluster_elements <- apply(combn(ncol(cluster_elements), 2), 2, function(x)
-    abs(cluster_elements[, x[1]] - cluster_elements[, x[2]]))
-
-  mean <- colMeans(cluster_elements, na.rm=TRUE)
-  index <- 1
-  mat <- matrix(data=NA, nrow=columns, ncol=columns)
-
-  for(xi in 1:(columns-1)){
-    for (yi in xi:(columns-1)){
-      mat[xi, yi + 1] <- mean[index]
-      mat[yi + 1, xi] <- mean[index]
-      index <- index + 1
-    }
-  }
-
-  mat
-}
 
 ### list.clusters -- A function to get the clusters as a list of lists.
 #
@@ -1695,161 +1552,131 @@ list.from.centroid <- function(map,x,y,centroids,umat){
   list(cluster_list)
 }
 
-### combine.decision -- A function that produces a boolean matrix
-#                       representing which clusters should be combined.
-#
-# parameters:
-# - within_cluster_dist - A list of the distances from centroid to cluster elements for all centroids
-# - distance_between_clusters - A list of the average pairwise distance between clusters
-# - range is the distance where the clusters are merged together.
-combine.decision <- function(within_cluster_dist,distance_between_clusters,range){
-  inter_cluster <- distance_between_clusters
-  centroid_dist <- within_cluster_dist
-  dim <- dim(inter_cluster)[1]
-  to_combine <- matrix(data=FALSE, nrow=dim, ncol=dim)
-  for(xi in 1:dim){
-    for(yi in 1:dim){
-      cdist <- inter_cluster[xi,yi]
-      if(!is.na(cdist)){
-        rx <- centroid_dist[xi] * range
-        ry <- centroid_dist[yi] * range
-        if(cdist < (centroid_dist[xi] + rx) || cdist < (centroid_dist[yi] + ry)){
-          to_combine[xi, yi] <- TRUE
-        }
-      }
-    }
-  }
-  to_combine
-}
-
-### swap.centroids -- A function that changes every instance of a centroid to
-#                     one that it should be combined with.
-# parameters:
-# - map is an object of type 'map'
-# - x1 -
-# - y1 -
-# - x2 -
-# - y2 -
-# - centroids - a matrix of the centroid locations in the map
-swap.centroids <- function(map, x1, y1, x2, y2, centroids){
-  xdim <- map$xdim
-  ydim <- map$ydim
-  compn_x <- centroids$centroid.x
-  compn_y <- centroids$centroid.y
-  for(xi in 1:xdim){
-    for(yi in 1:ydim){
-      if(compn_x[xi] == x1 && compn_y[yi] == y1){
-        compn_x[xi] <- x2
-        compn_y[yi] <- y2
-      }
-    }
-  }
-
-  list(centroid.x=compn_x, centroid.y=compn_y)
-}
-
-
-### new.centroid -- A function to combine centroids based on matrix of booleans.
-#
-# parameters:
-#
-# - bmat - a boolean matrix containing the centroids to merge
-# - centroids - a matrix of the centroid locations in the map
-# - unique.centroids - a list of unique centroid locations
-# - map is an object of type 'map'
-new.centroid <- function(bmat, centroids, unique.centroids, map){
-  bmat.rows <- dim(bmat)[1]
-  bmat.columns <- dim(bmat)[2]
-  centroids_x <- unique.centroids$position.x
-  centroids_y <- unique.centroids$position.y
-  components <- centroids
-  for(xi in 1:bmat.rows){
-    for(yi in 1:bmat.columns){
-      if(bmat[xi,yi] == TRUE){
-        x1 <- centroids_x[xi]
-        y1 <- centroids_y[xi]
-        x2 <- centroids_x[yi]
-        y2 <- centroids_y[yi]
-        components <- swap.centroids(map, x1, y1, x2, y2, components)
-      }
-    }
-  }
-  components
-}
-
-
-avg.homogeneity <- function(map,explicit=FALSE,smoothing=2,merge=FALSE,merge.range=.25)
+avg.homogeneity <- function(map)
 {
-    ### keep an unaltered copy of the unified distance matrix,
-    ### required for merging the starburst clusters
-    umat <- compute.heat(map,smoothing=smoothing)
+  if (is.null(map$labels))
+  {
+    stop("avg.homogeneity: you need to attach labels to the map")
+  }
 
-    x <- map$xdim
-    y <- map$ydim
-    nobs <- nrow(map$data)
-    centroid.labels <- array(data=list(),dim=c(x,y))
+  ### need to make sure the map doesn't have a dimension of 1
+  if (map$xdim <= 1 || map$ydim <= 1)
+  {
+    stop("avg.homogeneity: map dimensions too small")
+  }
 
-    ### need to make sure the map doesn't have a dimension of 1
-    if (x <= 1 || y <= 1)
-    {
-      stop("avg.homogeneity: map dimensions too small")
-    }
+  x <- map$xdim
+  y <- map$ydim
+  nobs <- nrow(map$data)
+  centroid.labels <- array(data=list(),dim=c(x,y))
 
-    if (is.null(map$labels))
-    {
-      stop("avg.homogeneity: you need to attach labels to the map")
-    }
+ # find the centroid for each neuron on the map
+ centroids <- compute.centroids(map)
 
-   if(!merge)
+ ### attach labels to centroids
+ # count the labels in each map cell
+ for(i in 1:nobs)
+ {
+   lab <- as.character(map$labels[i,1])
+   nix <- map$visual[i]
+   c <- coordinate(map,nix)
+   ix <- c[1]
+   iy <- c[2]
+   cx <- centroids$centroid.x[ix,iy]
+   cy <- centroids$centroid.y[ix,iy]
+   centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
+ }
+
+ ### compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
+ sum.majority <- 0
+ n.centroids <- 0
+
+ for (ix in 1:x)
+ {
+   for (iy in 1:y)
    {
-     # find the centroid for each neuron on the map
-     centroids <- compute.centroids(map,explicit)
-   }
-   else
-   {
-     # find the unique centroids for the neurons on the map
-     centroids <- compute.combined.clusters(map,umat,explicit,merge.range)
-   }
-
-   ### attach labels to centroids
-   # count the labels in each map cell
-   for(i in 1:nobs)
-   {
-     lab <- as.character(map$labels[i,1])
-     nix <- map$visual[i]
-     c <- coordinate(map,nix)
-     ix <- c[1]
-     iy <- c[2]
-     cx <- centroids$centroid.x[ix,iy]
-     cy <- centroids$centroid.y[ix,iy]
-     centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
-   }
-
-   ### compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
-   sum.majority <- 0
-   n.centroids <- 0
-
-   for (ix in 1:x)
-   {
-     for (iy in 1:y)
+     label.v <- centroid.labels[[ix,iy]]
+     if (length(label.v)!=0)
      {
-       label.v <- centroid.labels[[ix,iy]]
-       if (length(label.v)!=0)
-       {
-         n.centroids <- n.centroids + 1
-         majority <- data.frame(sort(table(label.v),decreasing=TRUE))
+       n.centroids <- n.centroids + 1
+       majority <- data.frame(sort(table(label.v),decreasing=TRUE))
+       #lhh
+       print(majority)
 
-         if (nrow(majority) == 1) # only one label
-         {
-           m.val <- length(label.v)
-         }
-         else
-         {
-           m.val <- majority[1,2]
-         }
-         sum.majority <- sum.majority + m.val
+       if (nrow(majority) == 1) # only one label
+       {
+         print(majority[1])
+         m.val <- length(label.v)
+       }
+       else
+       {
+         print(majority[1,1])
+         m.val <- majority[1,2]
+       }
+       sum.majority <- sum.majority + m.val
+     }
+   }
+ }
+ list(homog=sum.majority/nobs, nclust=n.centroids)
+}
+
+majority.labels <- function(map)
+{
+  if (is.null(map$labels))
+  {
+    stop("majority.labels: you need to attach labels to the map")
+  }
+
+  ### need to make sure the map doesn't have a dimension of 1
+  if (map$xdim <= 1 || map$ydim <= 1)
+  {
+    stop("majority.labels: map dimensions too small")
+  }
+
+  x <- map$xdim
+  y <- map$ydim
+  nobs <- nrow(map$data)
+  centroid.labels <- array(data=list(),dim=c(x,y))
+  majority.labels <- array(data=list(),dim=c(x,y))
+
+
+ # find the centroid for each neuron on the map
+ centroids <- compute.centroids(map)
+
+ ### attach labels to centroids
+ # count the labels in each map cell
+ for(i in 1:nobs)
+ {
+   lab <- as.character(map$labels[i,1])
+   nix <- map$visual[i]
+   c <- coordinate(map,nix)
+   ix <- c[1]
+   iy <- c[2]
+   cx <- centroids$centroid.x[ix,iy]
+   cy <- centroids$centroid.y[ix,iy]
+   centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
+ }
+
+ ### attach majority labels to centroids
+ for (ix in 1:x)
+ {
+   for (iy in 1:y)
+   {
+     label.v <- centroid.labels[[ix,iy]]
+     if (length(label.v)!=0)
+     {
+       majority <- data.frame(sort(table(label.v),decreasing=TRUE))
+       if (nrow(majority) == 1) # only one label
+       {
+         # just copy the label from the label vector
+         majority.labels[[ix,iy]] <- append(majority.labels[[ix,iy]],label.v[1])
+       }
+       else
+       {
+         majority.labels[[ix,iy]] <- append(majority.labels[[ix,iy]],levels(majority[1,1])[1])
        }
      }
    }
-   list(homog=sum.majority/nobs, nclust=n.centroids)
+ }
+ majority.labels
 }
