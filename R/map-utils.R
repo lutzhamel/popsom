@@ -16,6 +16,7 @@
 #                     with the neuron density for that same dimension or index.
 # map.fitted -------- returns a vector of labels assigned to the observations
 # map.predict ------- return the label of the centroid x is classified as
+# map.position ------ return the position of point x on the map
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
@@ -353,12 +354,14 @@ map.fitted <- function(map)
   labels
 }
 
-# map.predict(map,x) -- return the label of the centroid x is classified as
+# map.predict -- return the label of the centroid x is classified as
 # parameters:
 # - map -- map object
 # - x   -- point to be classified
 # value:
 # - the label of the centroid x belongs to
+# TODO: do predictions on a matrix of observations returning a vector of labels
+# or a matrix of labels and conf values
 map.predict <- function (map,x,verb=FALSE)
 {
   if (!is.vector(x))
@@ -380,12 +383,14 @@ map.predict <- function (map,x,verb=FALSE)
   l <- map$centroid.labels[[c.x,c.y]]
   label <- l[[1]]
 
-  # compute the confidence of the prediction
-  # NOTE: confidence is not probability but a simple measure of how
-  # close or far the vector x is from the centroid compared to the
-  # overall radius of the cluster.
-  if (verb)
+  if (!verb)
   {
+    return (label)
+  }
+  else
+  {
+    # compute the likelihood of the prediction
+
     # compute x to centroid distance
     c.nix <- rowix(map,c.x,c.y)
     vectors <- rbind(map$neurons[c.nix,],x)
@@ -403,10 +408,33 @@ map.predict <- function (map,x,verb=FALSE)
         }
     }
     max.o.to.c.distance <- max(as.matrix(dist(vectors))[1,])
+
+    # compute likelihood value
     conf <- 1.0 - (x.to.c.distance/max.o.to.c.distance)
     return (list(label=label,conf=conf))
   }
-  return (label)
+}
+
+# map.position -- return the position of point x on the map
+# parameters:
+# - map -- map object
+# - x   -- point to be mapped
+# value:
+# - x-y coordinate of point x
+map.position <- function (map,x,verb=FALSE)
+{
+  if (!is.vector(x))
+    stop("map.predict: argument has to be a vector.")
+
+  if (length(x) != ncol(map$data))
+    stop("map.predict: vector dimensionality is incompatible")
+
+  if (map$normalize)
+    x <- as.vector(map.normalize(x))
+
+  nix <- best.match(map,x)
+  coord <- coordinate(map,nix)
+  return (list(x=coord[1],y=coord[2]))
 }
 
 ############################### local functions #################################
