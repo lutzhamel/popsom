@@ -691,18 +691,19 @@ plot.heat <- function(map)
 	}
 
   # put majority labels on the centroids
-  if (!is.null(map$labels))
+  # Note: if labels were not given then the function majority.labels
+  # will compute numerical labels to attach to the centroids.
+  centroid.labels <- majority.labels(map)
+  # print(centroid.labels)
+  
+  for(ix in 1:x)
   {
-    centroid.labels <- majority.labels(map)
-    for(ix in 1:x)
+    for (iy in 1:y)
     {
-      for (iy in 1:y)
+      lab.l <- centroid.labels[[ix,iy]]
+      if (length(lab.l)!=0)
       {
-        lab.l <- centroid.labels[[ix,iy]]
-        if (length(lab.l)!=0)
-        {
-          text(ix-.5,iy-.5,labels=lab.l[1])
-        }
+        text(ix-.5,iy-.5,labels=lab.l[1])
       }
     }
   }
@@ -1447,8 +1448,7 @@ batchsom.private <- function(data,grid,min.radius,max.radius,train,init,radius.t
 }
 
 
-### get.unique.centroids -- a function that computes a list of unique centroids from
-#                           a matrix of centroid locations.
+### get.unique.centroids -- a list of unique centroid locations on the map
 #
 # parameters:
 # - map is an object of type 'map'
@@ -1459,13 +1459,12 @@ get.unique.centroids <- function(map, centroids){
   ydim <- map$ydim
   xlist <- c()
   ylist <- c()
-  x.centroid <- centroids$centroid.x
-  y.centroid <- centroids$centroid.y
+  unique.centroids <- list()
 
   for(ix in 1:xdim){
     for(iy in 1:ydim) {
-      cx <- x.centroid[ix, iy]
-      cy <- y.centroid[ix, iy]
+      cx <- centroids[[ix, iy]]$x
+      cy <- centroids[[ix, iy]]$y
 
       # Check if the x or y of the current centroid is not in the list and if not
       # append both the x and y coordinates to the respective lists
@@ -1476,8 +1475,15 @@ get.unique.centroids <- function(map, centroids){
     }
   }
 
-  # return a list of unique centroid positions
-  list(position.x=xlist, position.y=ylist)
+  # build the list of centroid locations
+  for (i in 1:length(xlist))
+  {
+    # NOTE: it has to be list of list in the append because append
+    # will flatten the first list preserving the second list
+    # as representation of the centroid coordinate list(x=xpos,y=ypos)
+    unique.centroids <- append(unique.centroids, list(list(x=xlist[i],y=ylist[i])))
+  }
+  unique.centroids
 }
 
 
@@ -1524,8 +1530,8 @@ list.from.centroid <- function(map,x,y,centroids,umat){
   cluster_list <- c()
   for(xi in 1:xdim){
     for(yi in 1:ydim){
-      cx <- centroids$centroid.x[xi, yi]
-      cy <- centroids$centroid.y[xi, yi]
+      cx <- centroids[[xi, yi]]$x
+      cy <- centroids[[xi, yi]]$y
 
       if(cx == centroid.x && cy == centroid.y){
         cweight <- umat[xi, yi]
@@ -1600,17 +1606,14 @@ avg.homogeneity <- function(map)
  list(homog=sum.majority/nobs, nclust=n.centroids)
 }
 
+# majority.labels -- return a map where the positions of the centroids
+# has the majority label of the appropriate cluster attached to them.
 majority.labels <- function(map)
 {
   if (is.null(map$labels))
   {
-    stop("majority.labels: you need to attach labels to the map")
-  }
-
-  ### need to make sure the map doesn't have a dimension of 1
-  if (map$xdim <= 1 || map$ydim <= 1)
-  {
-    stop("majority.labels: map dimensions too small")
+    # no labels given, make up some numerical labels
+    return (numerical.labels(map))
   }
 
   x <- map$xdim
@@ -1623,8 +1626,8 @@ majority.labels <- function(map)
   # find the centroid for each neuron on the map
   centroids <- compute.centroids(map)
 
-  ### attach labels to centroids
-  # count the labels in each map cell
+  # gather the labels from the clusters and record them
+  # at the centroid position.
   for(i in 1:nobs)
   {
    lab <- as.character(map$labels[i,1])
@@ -1637,7 +1640,7 @@ majority.labels <- function(map)
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
   }
 
-  ### attach majority labels to centroids
+  # attach majority labels to centroids
   for (ix in 1:x)
   {
    for (iy in 1:y)
@@ -1648,7 +1651,7 @@ majority.labels <- function(map)
        majority <- data.frame(sort(table(label.v),decreasing=TRUE))
        if (nrow(majority) == 1) # only one label
        {
-         # just copy the label from the label vector
+         # just copy a label from the label vector
          majority.labels[[ix,iy]] <- append(majority.labels[[ix,iy]],label.v[1])
        }
        else
@@ -1659,4 +1662,27 @@ majority.labels <- function(map)
    }
   }
   majority.labels
+}
+
+# numerical.labels -- create labels for centroids
+numerical.labels <- function(map)
+{
+  label_cnt <- 1
+  centroid.labels <- array(data=list(),dim=c(map$xdim,map$ydim))
+
+  # find the centroid for each neuron on the map
+  centroids <- compute.centroids(map)
+  # list of unique centroid locations
+  unique.centroids <- get.unique.centroids(map,centroids)
+  # set our labels at the centroid locations
+  for (i in 1:length(unique.centroids))
+  {
+    label <- paste("centroid",label_cnt,sep=" ")
+    label_cnt <- label_cnt+1
+    ix <- unique.centroids[[i]]$x
+    iy <- unique.centroids[[i]]$y
+    #cat("coord",ix,iy,label,"\n")
+    centroid.labels[[ix,iy]] <- append(centroid.labels[[ix,iy]],label)
+  }
+  centroid.labels
 }
