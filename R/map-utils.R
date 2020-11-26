@@ -13,7 +13,8 @@
 # map.starburst ----- displays the starburst representation of the SOM model, the centers of
 #                     starbursts are the centers of clusters
 # map.marginal ------ displays a density plot of a training dataframe dimension overlayed
-#                      with the neuron density for that same dimension or index.
+#                     with the neuron density for that same dimension or index.
+# map.fitted -------- returns a vector of labels assigned to the observations
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
@@ -152,11 +153,25 @@ map.build <- function(data,
   # add the class name
   class(map) <- "map"
 
+  # Note: do not change the order of the following computations
+
   # add the heat map
   map$heat <- compute.heat(map)
 
-  # ix's of best matching neuron for each obs
-  map$visual <- map.visual(map)
+  # list of indexes of best matching neuron for each obs
+  map$fitted.obs <- map.fitted.obs(map)
+
+  # map of centroids - this is a map where each cell points
+  # to the the location on the map where the corresponding centroid
+  # is located.  centroids point to themselves.
+  map$centroids <- compute.centroids(map)
+
+  # a list of actual centroid locations on the map
+  map$centroid.locations <- get.unique.centroids(map)
+
+  # this is a map where locations of centroids have a label associated
+  # with them. if unlabeled data then we invented labels for the centroids
+  map$centroid.labels <- majority.labels(map)
 
   return(map)
 }
@@ -311,6 +326,33 @@ map.marginal <- function(map,marginal)
 
 }
 
+# map.fitted -- returns a vector of labels assigned to the observations
+# parameters:
+# - map is an object of type 'map'
+# value:
+# - a vector of labels
+
+map.fitted <- function(map)
+{
+  if (class(map) != "map")
+    stop("map.fitted: first argument is not a map object.")
+
+  nobs <- length(map$fitted.obs)
+  labels <- c()
+  for (i in 1:nobs)
+  {
+    nix <- map$fitted.obs[[i]]
+    coord <- coordinate(map,nix)
+    x <- coord[1]
+    y <- coord[2]
+    c.x <- map$centroids[[x,y]]$x
+    c.y <- map$centroids[[x,y]]$y
+    l <- map$centroid.labels[[c.x,c.y]]
+    labels <- c(labels,l[[1]])
+  }
+  labels
+}
+
 ############################### local functions #################################
 
 ### map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
@@ -333,16 +375,16 @@ map.neuron <- function(map,x,y)
 # for each observation i, visual has an entry for
 # the best matching neuron
 
-map.visual <- function(map)
+map.fitted.obs <- function(map)
 {
-  visual <- c()
+  fitted.obs <- c()
   for (i in 1:nrow(map$data))
   {
       b <- best.match(map,map$data[i,])
-      visual <- c(visual,b)
+      fitted.obs <- c(fitted.obs,b)
   }
 
-  visual
+  fitted.obs
 }
 
 map.topo.private <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
@@ -562,7 +604,7 @@ accuracy <- function(map,sample,data.ix)
     coord.x <- coord[1]
     coord.y <- coord[2]
 
-    map.ix <- map$visual[data.ix]
+    map.ix <- map$fitted.obs[data.ix]
     coord <- coordinate(map,map.ix)
     map.x <- coord[1]
     map.y <- coord[2]
@@ -633,8 +675,7 @@ plot.heat <- function(map)
 {
 	x <- map$xdim
 	y <- map$ydim
-	nobs <- nrow(map$data)
-	count <- array(data=0,dim=c(x,y))
+  centroids <- map$centroids
 
 	### need to make sure the map doesn't have a dimension of 1
 	if (x <= 1 || y <= 1)
@@ -675,10 +716,6 @@ plot.heat <- function(map)
 		}
 	}
 
-	### put the connected component lines on the map
-  # find the centroid for each neuron on the map
-  centroids <- compute.centroids(map)
-
   # connect each neuron to its centroid
 	for(ix in 1:x)
   {
@@ -695,7 +732,7 @@ plot.heat <- function(map)
   # will compute numerical labels to attach to the centroids.
   centroid.labels <- majority.labels(map)
   # print(centroid.labels)
-  
+
   for(ix in 1:x)
   {
     for (iy in 1:y)
@@ -1226,6 +1263,7 @@ compute.heat <- function(map)
 		}
 	}
 	xycoords <- data.frame(xcoords,ycoords)
+  # smooth it slightly to make it look pretty
   heat <- smooth.2d(as.vector(heat),x=as.matrix(xycoords),nrow=x,ncol=y,surface=FALSE,theta=2)
 
 	heat
@@ -1452,17 +1490,20 @@ batchsom.private <- function(data,grid,min.radius,max.radius,train,init,radius.t
 #
 # parameters:
 # - map is an object of type 'map'
-# - centroids - a matrix of the centroid locations in the map
-get.unique.centroids <- function(map, centroids){
+get.unique.centroids <- function(map)
+{
   # get the dimensions of the map
+  centroids <- map$centroids
   xdim <- map$xdim
   ydim <- map$ydim
   xlist <- c()
   ylist <- c()
   unique.centroids <- list()
 
-  for(ix in 1:xdim){
-    for(iy in 1:ydim) {
+  for(ix in 1:xdim)
+  {
+    for(iy in 1:ydim)
+    {
       cx <- centroids[[ix, iy]]$x
       cy <- centroids[[ix, iy]]$y
 
@@ -1557,32 +1598,30 @@ avg.homogeneity <- function(map)
 
   x <- map$xdim
   y <- map$ydim
+  centroids <- map$centroids
   nobs <- nrow(map$data)
   centroid.labels <- array(data=list(),dim=c(x,y))
 
- # find the centroid for each neuron on the map
- centroids <- compute.centroids(map)
-
- ### attach labels to centroids
- # count the labels in each map cell
- for(i in 1:nobs)
- {
+  ### attach labels to centroids
+  # count the labels in each map cell
+  for(i in 1:nobs)
+  {
    lab <- as.character(map$labels[i,1])
-   nix <- map$visual[i]
+   nix <- map$fitted.obs[i]
    c <- coordinate(map,nix)
    ix <- c[1]
    iy <- c[2]
    cx <- centroids[[ix,iy]]$x
    cy <- centroids[[ix,iy]]$y
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
- }
+  }
 
- ### compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
- sum.majority <- 0
- n.centroids <- 0
+  ### compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
+  sum.majority <- 0
+  n.centroids <- 0
 
- for (ix in 1:x)
- {
+  for (ix in 1:x)
+  {
    for (iy in 1:y)
    {
      label.v <- centroid.labels[[ix,iy]]
@@ -1602,8 +1641,8 @@ avg.homogeneity <- function(map)
        sum.majority <- sum.majority + m.val
      }
    }
- }
- list(homog=sum.majority/nobs, nclust=n.centroids)
+  }
+  list(homog=sum.majority/nobs, nclust=n.centroids)
 }
 
 # majority.labels -- return a map where the positions of the centroids
@@ -1618,20 +1657,17 @@ majority.labels <- function(map)
 
   x <- map$xdim
   y <- map$ydim
+  centroids <- map$centroids
   nobs <- nrow(map$data)
   centroid.labels <- array(data=list(),dim=c(x,y))
   majority.labels <- array(data=list(),dim=c(x,y))
-
-
-  # find the centroid for each neuron on the map
-  centroids <- compute.centroids(map)
 
   # gather the labels from the clusters and record them
   # at the centroid position.
   for(i in 1:nobs)
   {
    lab <- as.character(map$labels[i,1])
-   nix <- map$visual[i]
+   nix <- map$fitted.obs[i]
    c <- coordinate(map,nix)
    ix <- c[1]
    iy <- c[2]
@@ -1668,12 +1704,10 @@ majority.labels <- function(map)
 numerical.labels <- function(map)
 {
   label_cnt <- 1
+  centroids <- map$centroids
+  unique.centroids <- map$centroid.locations
   centroid.labels <- array(data=list(),dim=c(map$xdim,map$ydim))
 
-  # find the centroid for each neuron on the map
-  centroids <- compute.centroids(map)
-  # list of unique centroid locations
-  unique.centroids <- get.unique.centroids(map,centroids)
   # set our labels at the centroid locations
   for (i in 1:length(unique.centroids))
   {
