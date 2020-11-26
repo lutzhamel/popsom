@@ -27,6 +27,9 @@
 #  A copy of the GNU General Public License is available at
 #  http://www.r-project.org/Licenses/
 #
+### Helpful docs
+# https://medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
+# https://en.wikipedia.org/wiki/Total_sum_of_squares
 ###
 
 # load libraries
@@ -189,15 +192,14 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 ### map.starburst - compute and display the starburst representation of clusters
 # parameters:
 # - map is an object if type 'map'
-# - explicit controls the shape of the connected components
 
-map.starburst <- function(map,explicit=FALSE)
+map.starburst <- function(map)
 {
 
 	if (class(map) != "map")
 		stop("map.starburst: first argument is not a map object.")
 
-	plot.heat(map,explicit=explicit,comp=TRUE)
+	plot.heat(map)
 }
 
 ### map.significance - compute the relative significance of each feature and plot it
@@ -261,8 +263,6 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 		prob.v
 	}
 }
-
-
 
 ### map.marginal - plot that shows the marginal probability distribution of the neurons and data
 # parameters:
@@ -628,12 +628,8 @@ map.graphics.reset <- function(par.vector)
 #               components of the map based on the landscape of the heat map
 # parameters:
 # - map is an object if type 'map'
-# - heat is a 2D heat map of the map returned by 'map'
-# - labels is a vector with labels of the original training data set
-# - explicit controls the shape of the connected components
-# - comp controls whether we plot the connected components on the heat map
 
-plot.heat <- function(map,explicit=FALSE,comp=TRUE)
+plot.heat <- function(map)
 {
 	x <- map$xdim
 	y <- map$ydim
@@ -680,38 +676,37 @@ plot.heat <- function(map,explicit=FALSE,comp=TRUE)
 	}
 
 	### put the connected component lines on the map
-	if (comp)
-  {
-	  # find the centroid for each neuron on the map
-	  centroids <- compute.centroids(map,explicit)
-    # connect each neuron to its centroid
-		for(ix in 1:x)
-    {
-			for (iy in 1:y)
-      {
-				cx <- centroids$centroid.x[ix,iy]
-				cy <- centroids$centroid.y[ix,iy]
-				points(c(ix,cx)-.5,c(iy,cy)-.5,type="l",col="grey")
-			}
-		}
+  # find the centroid for each neuron on the map
+  centroids <- compute.centroids(map)
 
-    # put majority labels on the centroids
-    if (!is.null(map$labels))
+  # connect each neuron to its centroid
+	for(ix in 1:x)
+  {
+		for (iy in 1:y)
     {
-      centroid.labels <- majority.labels(map)
-      for(ix in 1:x)
+			cx <- centroids[[ix,iy]]$x
+			cy <- centroids[[ix,iy]]$y
+			points(c(ix,cx)-.5,c(iy,cy)-.5,type="l",col="grey")
+		}
+	}
+
+  # put majority labels on the centroids
+  if (!is.null(map$labels))
+  {
+    centroid.labels <- majority.labels(map)
+    for(ix in 1:x)
+    {
+      for (iy in 1:y)
       {
-        for (iy in 1:y)
+        lab.l <- centroid.labels[[ix,iy]]
+        if (length(lab.l)!=0)
         {
-          lab.l <- centroid.labels[[ix,iy]]
-          if (length(lab.l)!=0)
-          {
-            text(ix-.5,iy-.5,labels=lab.l[1])
-          }
+          text(ix-.5,iy-.5,labels=lab.l[1])
         }
       }
     }
-	}
+  }
+
 	map.graphics.reset(par.v)
 }
 
@@ -719,18 +714,27 @@ plot.heat <- function(map,explicit=FALSE,comp=TRUE)
 ### compute.centroids -- compute the centroid for each point on the map
 # parameters:
 # - map is an object if type 'map'
-# - explicit controls the shape of the connected component
 # return value:
-# - a list containing the matrices with the same x-y dims as the original map containing the centroid x-y coordinates
+# - a map of the same dimension of the input map where each cell points
+#   to the centroid of this cell.
 
-compute.centroids <- function(map,explicit=FALSE)
+compute.centroids <- function(map)
 {
   heat <- map$heat
 	xdim <- map$xdim
 	ydim <- map$ydim
-	centroid.x <- array(data=-1,dim=c(xdim,ydim))
-	centroid.y <- array(data=-1,dim=c(xdim,ydim))
-	max.val <- max(heat)
+  max.val <- max(heat)
+	centroids <- array(data=list(),dim=c(xdim,ydim))
+
+  # init the centroids matrix
+  for (i in 1:xdim)
+  {
+    for (j in 1:ydim)
+    {
+      centroids[[i,j]]$x <- -1
+      centroids[[i,j]]$y <- -1
+    }
+  }
 
   ########################################################################
   ### local recursive function to find the centroid of a point on the map
@@ -739,9 +743,9 @@ compute.centroids <- function(map,explicit=FALSE)
   	# first we check if the current position is already associated
   	# with a centroid.  if so, simply return the coordinates
   	# of that centroid
-  	if (centroid.x[ix,iy] > -1 && centroid.y[ix,iy] > -1)
+  	if ((centroids[[ix,iy]])$x > -1 && (centroids[[ix,iy]])$y > -1)
     {
-  		list(bestx=centroid.x[ix,iy],besty=centroid.y[ix,iy])
+  		centroids[[ix,iy]]
   	}
 
   	# try to find a smaller value in the immediate neighborhood
@@ -1042,38 +1046,18 @@ compute.centroids <- function(map,explicit=FALSE)
 		}
 
 		# if successful
-		# move to the square with the smaller value, i.e., call compute.centroid on this new square
-		# Note: the RETURNED x-y coords in the centroid.x and centroid.y matrix at the current location
-		# return the RETURNED x-y coordinates
+		# move to the square with the smaller value and
+    # call compute.centroid on this new square
 		if (min.x != ix || min.y != iy)
     {
-			r.val <- compute.centroid(min.x,min.y)
-
-			# if explicit is set show the exact connected component
-			# otherwise construct a connected componenent where all
-			# nodes are connected to a centrol node
-			if (explicit)
-      {
-				centroid.x[ix,iy] <<- min.x
-				centroid.y[ix,iy] <<- min.y
-				list(bestx=min.x,besty=min.y)
-			}
-			else
-      {
-				centroid.x[ix,iy] <<- r.val$bestx
-				centroid.y[ix,iy] <<- r.val$besty
-				r.val
-			}
+      # Note: returns a list of an x and y coordinate
+			compute.centroid(min.x,min.y)
 		}
 		#else
-		# we have found a minimum
-		# note the current x-y in the centroid.x and centroid.y matrix
-		# return the current x-y coordinates
+		# we have found a minimum -- this is our centroid.
 		else
     {
-			centroid.x[ix,iy] <<- ix
-			centroid.y[ix,iy] <<- iy
-			list(bestx=ix,besty=iy)
+			list(x=ix,y=iy)
 		}
 	} # end function compute.centroid
   ###########################################################################
@@ -1083,11 +1067,11 @@ compute.centroids <- function(map,explicit=FALSE)
   {
 		for (j in 1:ydim)
     {
-			compute.centroid(i,j)
+			centroids[[i,j]] <- compute.centroid(i,j)
 		}
 	}
 
-	list(centroid.x=centroid.x,centroid.y=centroid.y)
+  centroids
 }
 
 ### compute.heat -- compute a heat value map representation of the given distance matrix
@@ -1582,8 +1566,8 @@ avg.homogeneity <- function(map)
    c <- coordinate(map,nix)
    ix <- c[1]
    iy <- c[2]
-   cx <- centroids$centroid.x[ix,iy]
-   cy <- centroids$centroid.y[ix,iy]
+   cx <- centroids[[ix,iy]]$x
+   cy <- centroids[[ix,iy]]$y
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
  }
 
@@ -1600,17 +1584,13 @@ avg.homogeneity <- function(map)
      {
        n.centroids <- n.centroids + 1
        majority <- data.frame(sort(table(label.v),decreasing=TRUE))
-       #lhh
-       print(majority)
 
        if (nrow(majority) == 1) # only one label
        {
-         print(majority[1])
          m.val <- length(label.v)
        }
        else
        {
-         print(majority[1,1])
          m.val <- majority[1,2]
        }
        sum.majority <- sum.majority + m.val
@@ -1652,8 +1632,8 @@ majority.labels <- function(map)
    c <- coordinate(map,nix)
    ix <- c[1]
    iy <- c[2]
-   cx <- centroids$centroid.x[ix,iy]
-   cy <- centroids$centroid.y[ix,iy]
+   cx <- centroids[[ix,iy]]$x
+   cy <- centroids[[ix,iy]]$y
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
   }
 
