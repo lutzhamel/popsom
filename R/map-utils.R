@@ -15,6 +15,7 @@
 # map.marginal ------ displays a density plot of a training dataframe dimension overlayed
 #                     with the neuron density for that same dimension or index.
 # map.fitted -------- returns a vector of labels assigned to the observations
+# map.predict ------- return the label of the centroid x is classified as
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
@@ -353,6 +354,35 @@ map.fitted <- function(map)
   labels
 }
 
+# map.predict(map,x) -- return the label of the centroid x is classified as
+# parameters:
+# - map -- map object
+# - x   -- point to be classified
+# value:
+# - the label of the centroid x belongs to
+
+map.predict <- function (map,x)
+{
+  if (!is.vector(x))
+    stop("map.predict: argument has to be a vector.")
+
+  if (length(x) != ncol(map$data))
+    stop("map.predict: vector dimensionality is incompatible")
+
+  if (map$normalize)
+    x <- map.normalize(x)
+
+  nix <- best.match(map,x)
+
+  coord <- coordinate(map,nix)
+  x <- coord[1]
+  y <- coord[2]
+  c.x <- map$centroids[[x,y]]$x
+  c.y <- map$centroids[[x,y]]$y
+  l <- map$centroid.labels[[c.x,c.y]]
+  l[[1]]
+}
+
 ############################### local functions #################################
 
 ### map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
@@ -528,20 +558,22 @@ map.embed.ks <- function(map,conf.int=.95,verb=FALSE)
 
 # map.normalize -- based on the som:normalize function but preserved names
 
-map.normalize <- function (x, byrow = TRUE)
+map.normalize <- function (x)
 {
-    if (is.data.frame(x))
-    {
-        if (byrow)
-            df <- data.frame(t(apply(x, 1, scale)))
-        else
-            df <- data.frame(apply(x, 2, scale))
-
-        names(df) <- names(x)
-        df
-    }
-    else
-        stop("map.normalize: 'x' is not a dataframe.\n")
+  if (is.vector(x))
+  {
+    return (scale(x))
+  }
+  else if (is.data.frame(x))
+  {
+    df <- data.frame(t(apply(x,1,scale)))
+    names(df) <- names(x)
+    return (df)
+  }
+  else
+  {
+    stop("map.normalize: 'x' is not a vector or dataframe.\n")
+  }
 }
 
 
