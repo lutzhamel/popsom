@@ -1640,13 +1640,13 @@ majority.labels <- function(map)
   majority.labels <- array(data=list(),dim=c(x,y))
 
 
- # find the centroid for each neuron on the map
- centroids <- compute.centroids(map)
+  # find the centroid for each neuron on the map
+  centroids <- compute.centroids(map)
 
- ### attach labels to centroids
- # count the labels in each map cell
- for(i in 1:nobs)
- {
+  ### attach labels to centroids
+  # count the labels in each map cell
+  for(i in 1:nobs)
+  {
    lab <- as.character(map$labels[i,1])
    nix <- map$visual[i]
    c <- coordinate(map,nix)
@@ -1655,11 +1655,11 @@ majority.labels <- function(map)
    cx <- centroids$centroid.x[ix,iy]
    cy <- centroids$centroid.y[ix,iy]
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
- }
+  }
 
- ### attach majority labels to centroids
- for (ix in 1:x)
- {
+  ### attach majority labels to centroids
+  for (ix in 1:x)
+  {
    for (iy in 1:y)
    {
      label.v <- centroid.labels[[ix,iy]]
@@ -1677,6 +1677,6 @@ majority.labels <- function(map)
        }
      }
    }
- }
- majority.labels
+  }
+  majority.labels
 }
