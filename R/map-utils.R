@@ -1,7 +1,8 @@
 ### map-utils.R
 # version 5.0.0
-# (c) 2009-2020 Lutz Hamel, Benjamin Ott, Greg Breard, University of Rhode Island
-#               with Robert Tatoian, Vishakh Gopu, and Michael Eiger
+# (c) 2009-2020 University of Rhode Island
+#               Lutz Hamel, Benjamin Ott, Greg Breard,
+#               Robert Tatoian, Vishakh Gopu, Michael Eiger
 #
 # This file constitues a set of routines which are useful in constructing
 # and evaluating self-organizing maps (SOMs).
@@ -35,7 +36,7 @@
 ###
 
 # load libraries
-#require(fields)
+require(fields)
 require(graphics)
 require(ggplot2)
 require(hash)
