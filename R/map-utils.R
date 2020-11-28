@@ -112,18 +112,22 @@ map.build <- function(data,
   # label to centroid lookup table
   map$label.to.centroid <- compute.label.to.centroid(map)
 
+  # a vector of lists of observations per centroid indexed
+  # by the centroid number from unique.centroids
+  map$centroid.obs <- compute.centroid.obs(map)
+
   ### quality measures of the model ###
 
   # the convergence index of a map
   map$convergence <- map.convergence(map)
 
   # compute the average within cluster sum of squares (wcss)
-  # this is the average variance within the clusters of the
+  # this is the variance within the clusters of the
   # underlying cluster model
   map$wcss <- compute.wcss(map)
 
   # compute the average between cluster sum of squares (bcss)
-  # this is the average variance between the cluster centroids of the
+  # this is the variance between the cluster centroids of the
   # underlying cluster model
   map$bcss <- compute.bcss(map)
 
@@ -314,7 +318,7 @@ map.predict <- function (map,df)
     vectors <- map$neurons[c.nix,]
     for (i in 1:nrow(map$data))
     {
-      # find the centroid of the current observation
+      # find the centroid of the current observation's
       # best matching neuron
       coord <- coordinate(map,map$fitted.obs[i])
       # centroid of cluster the neuron belongs to
@@ -382,6 +386,51 @@ map.position <- function (map,df)
 ############################# local functions ###############################
 #############################################################################
 
+# find.centroidix -- given a coordinate find the ix into the
+#                    unique.centroids table
+find.centroidix <- function (map,ix,iy)
+{
+  for (i in 1:length(map$unique.centroids))
+  {
+    if (ix == map$unique.centroids[[i]]$x &&
+        iy == map$unique.centroids[[i]]$y)
+      {
+        return (i)
+      }
+  }
+  stop("find.centroidix: coordinate not a centroid")
+}
+
+# compute.centroid.obs -- compute the observations that belong to each
+#                         centroid.
+compute.centroid.obs <- function (map)
+{
+  centroid.obs <- array(list(),dim=length(map$unique.centroids))
+
+  for (cluster.ix in 1:length(map$unique.centroids))
+  {
+    c.x <- map$unique.centroids[[cluster.ix]]$x
+    c.y <- map$unique.centroids[[cluster.ix]]$y
+    c.nix <- rowix(map,c.x,c.y)
+    for (i in 1:nrow(map$data))
+    {
+      # find the centroid of the current observation's
+      # best matching neuron
+      coord <- coordinate(map,map$fitted.obs[i])
+      # centroid of cluster the neuron belongs to
+      c.obj.x <- map$centroids[[coord[1],coord[2]]]$x
+      c.obj.y <- map$centroids[[coord[1],coord[2]]]$y
+      c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
+      # if observation centroid equal current centroid add to vectors
+      if (c.obj.nix == c.nix)
+      {
+        centroid.obs[[cluster.ix]] <- append(centroid.obs[[cluster.ix]],i)
+      }
+    }
+  }
+  as.vector(centroid.obs)
+}
+
 # map.convergence - the convergence index of a map
 #
 # parameters:
@@ -427,7 +476,7 @@ compute.wcss <- function (map)
     vectors <- map$neurons[c.nix,]
     for (i in 1:nrow(map$data))
     {
-      # find the centroid of the current observation
+      # find the centroid of the current observation's
       # best matching neuron
       coord <- coordinate(map,map$fitted.obs[i])
       # centroid of cluster the neuron belongs to
