@@ -7,16 +7,16 @@
 # This file constitues a set of routines which are useful in constructing
 # and evaluating self-organizing maps (SOMs).
 # The main utilities available in this file are:
-# map.build --------- constructs a map
-# map.starburst ----- displays the starburst representation of the SOM model,
-#                     the centers of starbursts are the centers of clusters
-# map.fitted -------- returns a vector of labels assigned to the observations
-# map.predict ------- returns classification labels for points in DF
-# map.position ------ return the position of points on the map
-# map.significance -- graphically reports the significance of each feature with
-#                     respect to the self-organizing map model
-# map.marginal ------ displays a density plot of a training dataframe dimension overlayed
-#                     with the neuron density for that same dimension or index.
+# map ----------- constructs a map
+# starburst ----- displays the starburst representation of the SOM model,
+#                 the centers of starbursts are the centers of clusters
+# fitted -------- returns a vector of labels assigned to the observations
+# predict ------- returns classification labels for points in DF
+# position ------ return the position of points on the map
+# significance -- graphically reports the significance of each feature with
+#                 respect to the self-organizing map model
+# marginal ------ displays a density plot of a training dataframe dimension overlayed
+#                 with the neuron density for that same dimension or index.
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
@@ -41,7 +41,15 @@ require(graphics)
 require(ggplot2)
 require(hash)
 
-# map.build -- construct a SOM, returns an object of class 'map'
+# S3 interface
+starburst <- function (map,...) UseMethod("starburst",map)
+fitted <- function (map,...) UseMethod("fitted",map)
+predict <- function (map,...) UseMethod("predict",map)
+position <- function (map,...) UseMethod("position",map)
+significance <- function (map,...) UseMethod("significance",map)
+marginal <- function (map,...) UseMethod("marginal",map)
+
+# map -- construct a SOM, returns an object of class 'map'
 #
 # parameters:
 # - data - a dataframe where each row contains an unlabeled training instance
@@ -52,17 +60,17 @@ require(hash)
 # - normalize - normalize the input data by row
 # value:
 # - an object of type 'map' -- see below
-map.build <- function(data,
-                      labels=NULL,
-                      xdim=10,
-                      ydim=5,
-                      alpha=.3,
-                      train=1000,
-                      normalize=TRUE)
+map <- function(data,
+                labels=NULL,
+                xdim=10,
+                ydim=5,
+                alpha=.3,
+                train=1000,
+                normalize=TRUE)
 {
   # check if the dims are reasonable
 	if (xdim < 3 || ydim < 3)
-		stop("map.build: map is too small.")
+		stop("build.map: map is too small.")
 
   if (normalize)
     data <- map.normalize(data)
@@ -137,28 +145,28 @@ map.build <- function(data,
   return(map)
 }
 
-# map.starburst - compute and display the starburst representation of clusters
+# starburst.map - compute and display the starburst representation of clusters
 # parameters:
 # - map is an object if type 'map'
-map.starburst <- function(map)
+starburst.map <- function(map)
 {
 	if (class(map) != "map")
-		stop("map.starburst: first argument is not a map object.")
+		stop("starburst.map: first argument is not a map object.")
 
 	plot.heat(map)
 }
 
-# map.significance - compute the relative significance of each feature and plot it
+# significance.map - compute the relative significance of each feature and plot it
 # parameters:
 # - map is an object if type 'map'
 # - graphics is a switch that controls whether a plot is generated or not
 # - feature.labels is a switch to allow the plotting of feature names vs feature indices
 # return value:
 # - a vector containing the significance for each feature
-map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
+significance.map <- function(map,graphics=TRUE,feature.labels=TRUE)
 {
 	if (class(map) != "map")
-		stop("map.significance: first argument is not a map object.")
+		stop("significance.map: first argument is not a map object.")
 
 	data.df <- data.frame(map$data)
 	nfeatures <- ncol(data.df)
@@ -209,11 +217,11 @@ map.significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 	}
 }
 
-# map.marginal - plot that shows the marginal probability distribution of the neurons and data
+# marginal.map - plot that shows the marginal probability distribution of the neurons and data
 # parameters:
 # - map is an object of type 'map'
 # - marginal is the name of a training data frame dimension or index
-map.marginal <- function(map,marginal)
+marginal.map <- function(map,marginal)
 {
   # ensure that map is a 'map' object
   if (class(map) != "map")
@@ -255,15 +263,15 @@ map.marginal <- function(map,marginal)
 
 }
 
-# map.fitted -- returns a vector of labels assigned to the observations
+# fitted.map -- returns a vector of labels assigned to the observations
 # parameters:
 # - map is an object of type 'map'
 # value:
 # - a vector of labels
-map.fitted <- function(map)
+fitted.map <- function(map)
 {
   if (class(map) != "map")
-    stop("map.fitted: first argument is not a map object.")
+    stop("fitted.map: first argument is not a map object.")
 
   nobs <- length(map$fitted.obs)
   labels <- c()
@@ -281,22 +289,22 @@ map.fitted <- function(map)
   labels
 }
 
-# map.predict -- returns classification labels for points in DF
+# predict.map -- returns classification labels for points in DF
 # parameters:
 # - map -- map object
 # - df  -- data frame of points to be classified
 # value:
 # - the label of the centroid x belongs to
-map.predict <- function (map,df)
+predict.map <- function (map,df)
 {
   # local function to do the actual prediction
   predict.point <- function (x)
   {
     if (!is.vector(x))
-      stop("map.predict: argument has to be a vector.")
+      stop("predict.map: argument has to be a vector.")
 
     if (length(x) != ncol(map$data))
-      stop("map.predict: vector dimensionality is incompatible")
+      stop("predict.map: vector dimensionality is incompatible")
 
     if (map$normalize)
       x <- as.vector(map.normalize(x))
@@ -344,22 +352,22 @@ map.predict <- function (map,df)
   m
 }
 
-# map.position -- return the position of points on the map
+# position.map -- return the position of points on the map
 # parameters:
 # - map -- map object
 # - df   -- a data frame of points to be mapped
 # value:
 # - x-y coordinates of points in df
-map.position <- function (map,df)
+position.map <- function (map,df)
 {
   # local function to positon a point on the map
   position.point <- function(x)
   {
     if (!is.vector(x))
-      stop("map.predict: argument has to be a vector.")
+      stop("position.map: argument has to be a vector.")
 
     if (length(x) != ncol(map$data))
-      stop("map.predict: vector dimensionality is incompatible")
+      stop("position.map: vector dimensionality is incompatible")
 
     if (map$normalize)
       x <- as.vector(map.normalize(x))
@@ -658,7 +666,7 @@ map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
 
     # compute the variance captured by the map -- but only if the means have converged as well.
     nfeatures <- ncol(map.df)
-    prob.v <- map.significance(map,graphics=FALSE)
+    prob.v <- significance.map(map,graphics=FALSE)
     var.sum <- 0
 
     for (i in 1:nfeatures)
@@ -711,7 +719,7 @@ map.embed.ks <- function(map,conf.int=.95,verb=FALSE)
       ks.vector[[i]] <- suppressWarnings(ks.test(map.df[[i]], data.df[[i]]))
   }
 
-  prob.v <- map.significance(map,graphics=FALSE)
+  prob.v <- significance.map(map,graphics=FALSE)
   var.sum <- 0
 
   # compute the variance captured by the map
