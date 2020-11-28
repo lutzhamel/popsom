@@ -49,6 +49,8 @@ position <- function (map,...) UseMethod("position",map)
 significance <- function (map,...) UseMethod("significance",map)
 marginal <- function (map,...) UseMethod("marginal",map)
 
+### constructor ###
+
 # map -- construct a SOM, returns an object of class 'map'
 #
 # parameters:
@@ -144,6 +146,8 @@ map <- function(data,
 
   return(map)
 }
+
+### implementation of S3 interface ###
 
 # starburst.map - compute and display the starburst representation of clusters
 # parameters:
@@ -258,7 +262,7 @@ marginal.map <- function(map,marginal)
   }
   else
   {
-    stop("map.marginal: second argument is not the name of a training data frame dimension or index")
+    stop("marginal.map: second argument is not the name of a training data frame dimension or index")
   }
 
 }
