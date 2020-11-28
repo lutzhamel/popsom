@@ -301,25 +301,31 @@ map.predict <- function (map,df)
     iy <- coord[2]
     c.x <- map$centroids[[ix,iy]]$x
     c.y <- map$centroids[[ix,iy]]$y
-    l <- map$centroid.labels[[c.x,c.y]]
-    label <- l[[1]]
+    c.nix <- rowix(map,c.x,c.y)
+    label <- map$centroid.labels[[c.x,c.y]][[1]]
 
     # compute the confidence of the prediction
     # compute x to centroid distance
-    c.nix <- rowix(map,c.x,c.y)
     vectors <- rbind(map$neurons[c.nix,],x)
     x.to.c.distance <- max(as.matrix(dist(vectors))[1,])
 
     # compute the max radius of cluster with label 'label'
     # NOTE: we are using the training data here NOT the neurons
     vectors <- map$neurons[c.nix,]
-    fitted.labels <- map.fitted(map)
     for (i in 1:nrow(map$data))
     {
-        if (fitted.labels[i] == label)
-        {
-          vectors <- rbind(vectors,map$data[i,])
-        }
+      # find the centroid of the current observation
+      # best matching neuron
+      coord <- coordinate(map,map$fitted.obs[i])
+      # centroid of cluster the neuron belongs to
+      c.obj.x <- map$centroids[[coord[1],coord[2]]]$x
+      c.obj.y <- map$centroids[[coord[1],coord[2]]]$y
+      c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
+      # if observation centroid equal current centroid add to vectors
+      if (c.obj.nix == c.nix)
+      {
+        vectors <- rbind(vectors,map$data[i,])
+      }
     }
     max.o.to.c.distance <- max(as.matrix(dist(vectors))[1,])
     # add a little bit of slack so we don't wind up with a 0 confidence value
@@ -431,7 +437,6 @@ compute.wcss <- function (map)
       # if observation centroid equal current centroid add to vectors
       if (c.obj.nix == c.nix)
       {
-        #print(c.nix)
         vectors <- rbind(vectors,map$data[i,])
       }
     }
