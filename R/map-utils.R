@@ -38,6 +38,7 @@
 #require(fields)
 require(graphics)
 require(ggplot2)
+require(hash)
 
 # map.build -- construct a SOM, returns an object of class 'map'
 #
@@ -109,7 +110,8 @@ map.build <- function(data,
   # with them. if unlabeled data then we invented labels for the centroids
   map$centroid.labels <- majority.labels(map)
 
-  # label to centroid lookup table
+  # label-to-centroid lookup table
+  # Note: a label can be associated with multiple centroids
   map$label.to.centroid <- compute.label.to.centroid(map)
 
   # a vector of lists of observations per centroid indexed
@@ -529,16 +531,23 @@ compute.bcss <- function (map)
 # The returned value is a table of indexes into the unique centroids table
 compute.label.to.centroid <- function (map)
 {
-  conv.v <- array(list(),dim=length(map$unique.centroids))
+  conv <- hash()
+
   for (i in 1:length(map$unique.centroids))
   {
     x <- map$unique.centroids[[i]]$x
     y <- map$unique.centroids[[i]]$y
     l <- map$centroid.labels[[x,y]][[1]]
-    conv.v[[i]]$label <- l
-    conv.v[[i]]$i <- i
+    if (is.null(conv[[l]]))
+    {
+      conv[[l]] <- list(i)
+    }
+    else
+    {
+      conv[[l]] <- append(conv[[l]],i)
+    }
   }
-  as.vector(conv.v)
+  conv
 }
 
 # map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
