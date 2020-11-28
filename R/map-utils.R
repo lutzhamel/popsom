@@ -122,12 +122,12 @@ map.build <- function(data,
   map$convergence <- map.convergence(map)
 
   # compute the average within cluster sum of squares (wcss)
-  # this is the variance within the clusters of the
+  # this is the average distance variance within the clusters of the
   # underlying cluster model
   map$wcss <- compute.wcss(map)
 
-  # compute the average between cluster sum of squares (bcss)
-  # this is the variance between the cluster centroids of the
+  # compute the between cluster sum of squares (bcss)
+  # this is the distance variance between the cluster centroids of the
   # underlying cluster model
   map$bcss <- compute.bcss(map)
 
@@ -298,8 +298,10 @@ map.predict <- function (map,df)
     if (map$normalize)
       x <- as.vector(map.normalize(x))
 
+    # find best matching neuron
     nix <- best.match(map,x)
 
+    # find corresponding centroid
     coord <- coordinate(map,nix)
     ix <- coord[1]
     iy <- coord[2]
@@ -307,29 +309,20 @@ map.predict <- function (map,df)
     c.y <- map$centroids[[ix,iy]]$y
     c.nix <- rowix(map,c.x,c.y)
     label <- map$centroid.labels[[c.x,c.y]][[1]]
+    c.ix <- find.centroidix(map,c.x,c.y)
 
     # compute the confidence of the prediction
     # compute x to centroid distance
     vectors <- rbind(map$neurons[c.nix,],x)
     x.to.c.distance <- max(as.matrix(dist(vectors))[1,])
 
-    # compute the max radius of cluster with label 'label'
+    # compute the max radius of cluster
     # NOTE: we are using the training data here NOT the neurons
     vectors <- map$neurons[c.nix,]
-    for (i in 1:nrow(map$data))
+    for (i in 1:length(map$centroid.obs[[c.ix]]))
     {
-      # find the centroid of the current observation's
-      # best matching neuron
-      coord <- coordinate(map,map$fitted.obs[i])
-      # centroid of cluster the neuron belongs to
-      c.obj.x <- map$centroids[[coord[1],coord[2]]]$x
-      c.obj.y <- map$centroids[[coord[1],coord[2]]]$y
-      c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
-      # if observation centroid equal current centroid add to vectors
-      if (c.obj.nix == c.nix)
-      {
-        vectors <- rbind(vectors,map$data[i,])
-      }
+      obs.ix <- map$centroid.obs[[c.ix]][i]
+      vectors <- rbind(vectors,map$data[obs.ix,])
     }
     max.o.to.c.distance <- max(as.matrix(dist(vectors))[1,])
     # add a little bit of slack so we don't wind up with a 0 confidence value
@@ -379,7 +372,6 @@ map.position <- function (map,df)
   m <- data.frame(t(apply(df,1,position.point)))
   names(m) <- c("x-dim", "y-dim")
   m
-
 }
 
 #############################################################################
@@ -474,20 +466,10 @@ compute.wcss <- function (map)
     c.y <- map$unique.centroids[[cluster.ix]]$y
     c.nix <- rowix(map,c.x,c.y)
     vectors <- map$neurons[c.nix,]
-    for (i in 1:nrow(map$data))
+    for (i in 1:length(map$centroid.obs[[cluster.ix]]))
     {
-      # find the centroid of the current observation's
-      # best matching neuron
-      coord <- coordinate(map,map$fitted.obs[i])
-      # centroid of cluster the neuron belongs to
-      c.obj.x <- map$centroids[[coord[1],coord[2]]]$x
-      c.obj.y <- map$centroids[[coord[1],coord[2]]]$y
-      c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
-      # if observation centroid equal current centroid add to vectors
-      if (c.obj.nix == c.nix)
-      {
-        vectors <- rbind(vectors,map$data[i,])
-      }
+      obs.ix <- map$centroid.obs[[cluster.ix]][i]
+      vectors <- rbind(vectors,map$data[obs.ix,])
     }
     distances <- as.matrix(dist(vectors))[1,]
     distances.sqd <- sapply(distances,function(x){x*x})
@@ -547,15 +529,16 @@ compute.bcss <- function (map)
 # The returned value is a table of indexes into the unique centroids table
 compute.label.to.centroid <- function (map)
 {
-  conv.list <- c()
+  conv.v <- array(list(),dim=length(map$unique.centroids))
   for (i in 1:length(map$unique.centroids))
   {
     x <- map$unique.centroids[[i]]$x
     y <- map$unique.centroids[[i]]$y
     l <- map$centroid.labels[[x,y]][[1]]
-    conv.list <- c(conv.list,list(label=l,cluster=i))
+    conv.v[[i]]$label <- l
+    conv.v[[i]]$i <- i
   }
-  conv.list
+  as.vector(conv.v)
 }
 
 # map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
@@ -1572,7 +1555,6 @@ get.unique.centroids <- function(map)
   ydim <- map$ydim
   xlist <- c()
   ylist <- c()
-  unique.centroids <- list()
 
   for(ix in 1:xdim)
   {
@@ -1591,14 +1573,17 @@ get.unique.centroids <- function(map)
   }
 
   # build the list of centroid locations
+  unique.centroids <- array(list(),dim=length(xlist))
+
   for (i in 1:length(xlist))
   {
     # NOTE: it has to be list of list in the append because append
     # will flatten the first list preserving the second list
     # as representation of the centroid coordinate list(x=xpos,y=ypos)
-    unique.centroids <- append(unique.centroids, list(list(x=xlist[i],y=ylist[i])))
+    unique.centroids[[i]]$x <- xlist[i]
+    unique.centroids[[i]]$y <- ylist[i]
   }
-  unique.centroids
+  as.vector(unique.centroids)
 }
 
 # avg.homogeneity -- given labels another way to ascertain quality of the map
