@@ -415,20 +415,14 @@ compute.centroid.obs <- function (map)
 
   for (cluster.ix in 1:length(map$unique.centroids))
   {
-    c.x <- map$unique.centroids[[cluster.ix]]$x
-    c.y <- map$unique.centroids[[cluster.ix]]$y
-    # TODO: make this code more compact
-    c.nix <- rowix(map,coord(c.x,c.y))
+    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
     for (i in 1:nrow(map$data))
     {
       # find the centroid of the current observation's
       # best matching neuron
       coord <- coordinate(map,map$fitted.obs[i])
       # centroid of cluster the neuron belongs to
-      c.obj.x <- map$centroids[[coord$x,coord$y]]$x
-      c.obj.y <- map$centroids[[coord$x,coord$y]]$y
-      # TODO: make this code more compact
-      c.obj.nix <- rowix(map,coord(c.obj.x,c.obj.y))
+      c.obj.nix <- rowix(map,map$centroids[[coord$x,coord$y]])
       # if observation centroid equal current centroid add to vectors
       if (c.obj.nix == c.nix)
       {
@@ -478,10 +472,7 @@ compute.wcss <- function (map)
   clusters.ss <- c()
   for (cluster.ix in 1:length(map$unique.centroids))
   {
-    c.x <- map$unique.centroids[[cluster.ix]]$x
-    c.y <- map$unique.centroids[[cluster.ix]]$y
-    # TODO: make this code more compact
-    c.nix <- rowix(map,coord(c.x,c.y))
+    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
     vectors <- map$neurons[c.nix,]
     for (i in 1:length(map$centroid.obs[[cluster.ix]]))
     {
@@ -505,17 +496,11 @@ compute.bcss <- function (map)
   all.bc.ss <- c()
 
   # put all cluster vectors into one table
-  c.x <- map$unique.centroids[[1]]$x
-  c.y <- map$unique.centroids[[1]]$y
-  # TODO: make this code more compact
-  c.nix <- rowix(map,coord(c.x,c.y))
+  c.nix <- rowix(map,map$unique.centroids[[1]])
   cluster.vectors <- map$neurons[c.nix,]
   for (cluster.ix in 2:length(map$unique.centroids))
   {
-    c.x <- map$unique.centroids[[cluster.ix]]$x
-    c.y <- map$unique.centroids[[cluster.ix]]$y
-    # TODO: make this code more compact
-    c.nix <- rowix(map,coord(c.x,c.y))
+    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
     c.vector <- map$neurons[c.nix,]
     cluster.vectors <- rbind(cluster.vectors,c.vector)
   }
@@ -527,10 +512,7 @@ compute.bcss <- function (map)
   # when computing the average.
   for (cluster.ix in 1:length(map$unique.centroids))
   {
-    c.x <- map$unique.centroids[[cluster.ix]]$x
-    c.y <- map$unique.centroids[[cluster.ix]]$y
-    # TODO: make this code more compact
-    c.nix <- rowix(map,coord(c.x,c.y))
+    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
     c.vector <- map$neurons[c.nix,]
     compute.vectors <- rbind(c.vector,cluster.vectors)
     bc.distances <- as.matrix(dist(compute.vectors))[1,]
@@ -1720,10 +1702,7 @@ compute.nwcss <- function (map)
   clusters.ss <- c()
   for (cluster.ix in 1:length(map$unique.centroids))
   {
-    c.x <- map$unique.centroids[[cluster.ix]]$x
-    c.y <- map$unique.centroids[[cluster.ix]]$y
-    # TODO: make this code more compact
-    c.nix <- rowix(map,coord(c.x,c.y))
+    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
     vectors <- map$neurons[c.nix,]
     for (i in 1:length(map$centroid.obs[[cluster.ix]]))
     {
