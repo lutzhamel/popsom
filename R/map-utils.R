@@ -321,7 +321,7 @@ predict.map <- function (map,points)
     iy <- coord$y
     c.x <- map$centroids[[ix,iy]]$x
     c.y <- map$centroids[[ix,iy]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    c.nix <- rowix(map,coord(c.x,c.y))
     label <- map$centroid.labels[[c.x,c.y]][[1]]
     c.ix <- find.centroidix(map,c.x,c.y)
 
@@ -417,7 +417,8 @@ compute.centroid.obs <- function (map)
   {
     c.x <- map$unique.centroids[[cluster.ix]]$x
     c.y <- map$unique.centroids[[cluster.ix]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    # TODO: make this code more compact
+    c.nix <- rowix(map,coord(c.x,c.y))
     for (i in 1:nrow(map$data))
     {
       # find the centroid of the current observation's
@@ -426,7 +427,8 @@ compute.centroid.obs <- function (map)
       # centroid of cluster the neuron belongs to
       c.obj.x <- map$centroids[[coord$x,coord$y]]$x
       c.obj.y <- map$centroids[[coord$x,coord$y]]$y
-      c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
+      # TODO: make this code more compact
+      c.obj.nix <- rowix(map,coord(c.obj.x,c.obj.y))
       # if observation centroid equal current centroid add to vectors
       if (c.obj.nix == c.nix)
       {
@@ -478,7 +480,8 @@ compute.wcss <- function (map)
   {
     c.x <- map$unique.centroids[[cluster.ix]]$x
     c.y <- map$unique.centroids[[cluster.ix]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    # TODO: make this code more compact
+    c.nix <- rowix(map,coord(c.x,c.y))
     vectors <- map$neurons[c.nix,]
     for (i in 1:length(map$centroid.obs[[cluster.ix]]))
     {
@@ -504,13 +507,15 @@ compute.bcss <- function (map)
   # put all cluster vectors into one table
   c.x <- map$unique.centroids[[1]]$x
   c.y <- map$unique.centroids[[1]]$y
-  c.nix <- rowix(map,c.x,c.y)
+  # TODO: make this code more compact
+  c.nix <- rowix(map,coord(c.x,c.y))
   cluster.vectors <- map$neurons[c.nix,]
   for (cluster.ix in 2:length(map$unique.centroids))
   {
     c.x <- map$unique.centroids[[cluster.ix]]$x
     c.y <- map$unique.centroids[[cluster.ix]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    # TODO: make this code more compact
+    c.nix <- rowix(map,coord(c.x,c.y))
     c.vector <- map$neurons[c.nix,]
     cluster.vectors <- rbind(cluster.vectors,c.vector)
   }
@@ -524,7 +529,8 @@ compute.bcss <- function (map)
   {
     c.x <- map$unique.centroids[[cluster.ix]]$x
     c.y <- map$unique.centroids[[cluster.ix]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    # TODO: make this code more compact
+    c.nix <- rowix(map,coord(c.x,c.y))
     c.vector <- map$neurons[c.nix,]
     compute.vectors <- rbind(c.vector,cluster.vectors)
     bc.distances <- as.matrix(dist(compute.vectors))[1,]
@@ -574,7 +580,7 @@ map.neuron <- function(map,x,y)
     if (class(map) != "map")
         stop("map.neuron: first argument is not a map object.")
 
-    ix <- rowix(map,x,y)
+    ix <- rowix(map,coord(x,y))
     map$neurons[ix,]
 }
 
@@ -855,6 +861,13 @@ coord <- function (x=0,y=0)
   l
 }
 
+format <- function(coord,...) UseMethod("format",coord)
+
+format.coord <- function (cd)
+{
+  return (cat("(",cd$x,",",cd$y,")"))
+}
+
 # coordinate -- convert from a row index to a map xy-coordinate
 coordinate <- function(map,rowix)
 {
@@ -864,9 +877,9 @@ coordinate <- function(map,rowix)
 }
 
 # rowix -- convert from a map xy-coordinate to a row index
-rowix <- function(map,x,y)
+rowix <- function(map,cd)
 {
-    rix <- x + (y-1)*map$xdim
+    rix <- cd$x + (cd$y-1)*map$xdim
     rix
 }
 
@@ -1349,7 +1362,7 @@ compute.heat <- function(map)
   {
     #cat("converting (",ix,",",iy,") to row", ix + (iy-1) *xdim,"\n")
 		#ix + (iy-1) * x
-    rowix(map,ix,iy)
+    rowix(map,coord(ix,iy))
 	}
 
 	# check if the map is larger than 2 x 2 (otherwise it is only corners)
@@ -1709,7 +1722,8 @@ compute.nwcss <- function (map)
   {
     c.x <- map$unique.centroids[[cluster.ix]]$x
     c.y <- map$unique.centroids[[cluster.ix]]$y
-    c.nix <- rowix(map,c.x,c.y)
+    # TODO: make this code more compact
+    c.nix <- rowix(map,coord(c.x,c.y))
     vectors <- map$neurons[c.nix,]
     for (i in 1:length(map$centroid.obs[[cluster.ix]]))
     {
@@ -1717,7 +1731,7 @@ compute.nwcss <- function (map)
       obs.nix <- map$fitted[[obs.ix]]
       obs.coord <- coordinate(map,obs.nix)
       centroid.coord <- map$centroids[[obs.coord$x,obs.coord$y]]
-      centroid.nix <- rowix(map,centroid.coord$x,centroid.coord$y)
+      centroid.nix <- rowix(map,centroid.coord)
       if (centroid.nix == c.nix){
         vectors <- rbind(vectors,map$neurons[obs.nix,])
       }
