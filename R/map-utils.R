@@ -282,8 +282,8 @@ fitted.map <- function(map)
   {
     nix <- map$fitted.obs[[i]]
     coord <- coordinate(map,nix)
-    x <- coord[1]
-    y <- coord[2]
+    x <- coord$x
+    y <- coord$y
     c.x <- map$centroids[[x,y]]$x
     c.y <- map$centroids[[x,y]]$y
     l <- map$centroid.labels[[c.x,c.y]]
@@ -317,8 +317,8 @@ predict.map <- function (map,points)
 
     # find corresponding centroid
     coord <- coordinate(map,nix)
-    ix <- coord[1]
-    iy <- coord[2]
+    ix <- coord$x
+    iy <- coord$y
     c.x <- map$centroids[[ix,iy]]$x
     c.y <- map$centroids[[ix,iy]]$y
     c.nix <- rowix(map,c.x,c.y)
@@ -377,7 +377,7 @@ position.map <- function (map,points)
 
     nix <- best.match(map,x)
     coord <- coordinate(map,nix)
-    return (c(coord[1],coord[2]))
+    return (c(coord$x,coord$y))
   }
 
   if (is.vector(points))
@@ -424,8 +424,8 @@ compute.centroid.obs <- function (map)
       # best matching neuron
       coord <- coordinate(map,map$fitted.obs[i])
       # centroid of cluster the neuron belongs to
-      c.obj.x <- map$centroids[[coord[1],coord[2]]]$x
-      c.obj.y <- map$centroids[[coord[1],coord[2]]]$y
+      c.obj.x <- map$centroids[[coord$x,coord$y]]$x
+      c.obj.y <- map$centroids[[coord$x,coord$y]]$y
       c.obj.nix <- rowix(map,c.obj.x,c.obj.y)
       # if observation centroid equal current centroid add to vectors
       if (c.obj.nix == c.nix)
@@ -817,13 +817,13 @@ accuracy <- function(map,sample,data.ix)
 
     # sanity check
     coord <- coordinate(map,best.ix)
-    coord.x <- coord[1]
-    coord.y <- coord[2]
+    coord.x <- coord$x
+    coord.y <- coord$y
 
     map.ix <- map$fitted.obs[data.ix]
     coord <- coordinate(map,map.ix)
-    map.x <- coord[1]
-    map.y <- coord[2]
+    map.x <- coord$x
+    map.y <- coord$y
 
     if (coord.x != map.x || coord.y != map.y || best.ix != map.ix)
     {
@@ -834,7 +834,7 @@ accuracy <- function(map,sample,data.ix)
     # determine if the best and second best are neighbors on the map
     best.xy <- coordinate(map,best.ix)
     second.best.xy <- coordinate(map,second.best.ix)
-    diff.map <- best.xy - second.best.xy
+    diff.map <- c(best.xy$x,best.xy$y) - c(second.best.xy$x,second.best.xy$y)
     diff.map.sq <- diff.map * diff.map
     sum.map <- sum(diff.map.sq)
     dist.map <- sqrt(sum.map)
@@ -847,12 +847,20 @@ accuracy <- function(map,sample,data.ix)
       0
 }
 
+# coord -- constructor for a 'coord' object
+coord <- function (x=0,y=0)
+{
+  l <- list(x=x,y=y)
+  class(l) <- "coord"
+  l
+}
+
 # coordinate -- convert from a row index to a map xy-coordinate
 coordinate <- function(map,rowix)
 {
     x <- (rowix-1) %% map$xdim + 1
     y <- (rowix-1) %/% map$xdim + 1
-    c(x,y)
+    coord(x,y)
 }
 
 # rowix -- convert from a map xy-coordinate to a row index
@@ -970,6 +978,7 @@ compute.centroids <- function(map)
 	xdim <- map$xdim
 	ydim <- map$ydim
   max.val <- max(heat)
+  # TODO: this should be an array of 'coord' objects
 	centroids <- array(data=list(),dim=c(xdim,ydim))
 
   # init the centroids matrix
@@ -1632,8 +1641,8 @@ majority.labels <- function(map)
    lab <- as.character(map$labels[i,1])
    nix <- map$fitted.obs[i]
    c <- coordinate(map,nix)
-   ix <- c[1]
-   iy <- c[2]
+   ix <- c$x
+   iy <- c$y
    cx <- centroids[[ix,iy]]$x
    cy <- centroids[[ix,iy]]$y
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
@@ -1707,7 +1716,7 @@ compute.nwcss <- function (map)
       obs.ix <- map$centroid.obs[[cluster.ix]][i]
       obs.nix <- map$fitted[[obs.ix]]
       obs.coord <- coordinate(map,obs.nix)
-      centroid.coord <- map$centroids[[obs.coord[1],obs.coord[2]]]
+      centroid.coord <- map$centroids[[obs.coord$x,obs.coord$y]]
       centroid.nix <- rowix(map,centroid.coord$x,centroid.coord$y)
       if (centroid.nix == c.nix){
         vectors <- rbind(vectors,map$neurons[obs.nix,])
@@ -1749,8 +1758,8 @@ avg.homogeneity <- function(map)
    lab <- as.character(map$labels[i,1])
    nix <- map$fitted.obs[i]
    c <- coordinate(map,nix)
-   ix <- c[1]
-   iy <- c[2]
+   ix <- c$x
+   iy <- c$y
    cx <- centroids[[ix,iy]]$x
    cy <- centroids[[ix,iy]]$y
    centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
