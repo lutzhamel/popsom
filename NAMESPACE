@@ -1,5 +1,5 @@
 useDynLib(popsom, .registration = TRUE)
-import(som,class,fields,graphics,ggplot2)
+import(fields,graphics,ggplot2,hash)
 importFrom("grDevices", "heat.colors")
 importFrom("stats", "dist", "ks.test", "runif", "t.test", "var", "var.test")
 importFrom("utils", "combn")

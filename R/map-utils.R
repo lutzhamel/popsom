@@ -106,7 +106,8 @@ map <- function(data,
   # add the heat map
   map$heat <- compute.heat(map)
 
-  # list of indexes of best matching neuron for each obs
+  # list of indexes of the best matching neuron for each observation.
+  # each index is an row index into the 'neuron' data frame.
   map$fitted.obs <- map.fitted.obs(map)
 
   # map of centroids - this is a map where each cell points
@@ -258,13 +259,11 @@ marginal.map <- function(map,marginal)
 
     hist <- rbind(train,neurons)
     ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(marginal)
-
   }
   else
   {
-    stop("marginal.map: second argument is not the name of a training data frame dimension or index")
+    stop("marginal.map: second argument is not the name of a training data dimension or index")
   }
-
 }
 
 # fitted.map -- returns a vector of labels assigned to the observations
@@ -296,10 +295,10 @@ fitted.map <- function(map)
 # predict.map -- returns classification labels for points in DF
 # parameters:
 # - map -- map object
-# - df  -- data frame of points to be classified
+# - points  -- data frame of points to be classified
 # value:
 # - the label of the centroid x belongs to
-predict.map <- function (map,df)
+predict.map <- function (map,points)
 {
   # local function to do the actual prediction
   predict.point <- function (x)
@@ -348,21 +347,21 @@ predict.map <- function (map,df)
     return (c(label,conf))
   }
 
-  if (is.vector(df))
-    df <- t(data.frame(df))
+  if (is.vector(points))
+    points <- t(data.frame(points))
 
-  m <- data.frame(t(apply(df,1,predict.point)))
-  names(m) <- c("Labels", "Confidence")
+  m <- data.frame(t(apply(points,1,predict.point)))
+  names(m) <- c("Label", "Confidence")
   m
 }
 
 # position.map -- return the position of points on the map
 # parameters:
 # - map -- map object
-# - df   -- a data frame of points to be mapped
+# - points   -- a data frame of points to be mapped
 # value:
-# - x-y coordinates of points in df
-position.map <- function (map,df)
+# - x-y coordinates of points in points
+position.map <- function (map,points)
 {
   # local function to positon a point on the map
   position.point <- function(x)
@@ -381,10 +380,10 @@ position.map <- function (map,df)
     return (c(coord[1],coord[2]))
   }
 
-  if (is.vector(df))
-    df <- t(data.frame(df))
+  if (is.vector(points))
+    points <- t(data.frame(points))
 
-  m <- data.frame(t(apply(df,1,position.point)))
+  m <- data.frame(t(apply(points,1,position.point)))
   names(m) <- c("x-dim", "y-dim")
   m
 }
@@ -495,7 +494,7 @@ compute.wcss <- function (map)
   wcss
 }
 
-# compute.wbcss -- compute the average between cluster sum of squares
+# compute.bcss -- compute the average between cluster sum of squares
 # see here:
 # https://medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
 compute.bcss <- function (map)
@@ -1608,68 +1607,6 @@ get.unique.centroids <- function(map)
   as.vector(unique.centroids)
 }
 
-# avg.homogeneity -- given labels another way to ascertain quality of the map
-avg.homogeneity <- function(map)
-{
-  if (is.null(map$labels))
-  {
-    stop("avg.homogeneity: you need to attach labels to the map")
-  }
-
-  # need to make sure the map doesn't have a dimension of 1
-  if (map$xdim <= 1 || map$ydim <= 1)
-  {
-    stop("avg.homogeneity: map dimensions too small")
-  }
-
-  x <- map$xdim
-  y <- map$ydim
-  centroids <- map$centroids
-  nobs <- nrow(map$data)
-  centroid.labels <- array(data=list(),dim=c(x,y))
-
-  #attach labels to centroids
-  # count the labels in each map cell
-  for(i in 1:nobs)
-  {
-   lab <- as.character(map$labels[i,1])
-   nix <- map$fitted.obs[i]
-   c <- coordinate(map,nix)
-   ix <- c[1]
-   iy <- c[2]
-   cx <- centroids[[ix,iy]]$x
-   cy <- centroids[[ix,iy]]$y
-   centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
-  }
-
-  # compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
-  sum.majority <- 0
-  n.centroids <- 0
-
-  for (ix in 1:x)
-  {
-   for (iy in 1:y)
-   {
-     label.v <- centroid.labels[[ix,iy]]
-     if (length(label.v)!=0)
-     {
-       n.centroids <- n.centroids + 1
-       majority <- data.frame(sort(table(label.v),decreasing=TRUE))
-
-       if (nrow(majority) == 1) # only one label
-       {
-         m.val <- length(label.v)
-       }
-       else
-       {
-         m.val <- majority[1,2]
-       }
-       sum.majority <- sum.majority + m.val
-     }
-   }
-  }
-  list(homog=sum.majority/nobs, nclust=n.centroids)
-}
 
 # majority.labels -- return a map where the positions of the centroids
 # has the majority label of the appropriate cluster attached to them.
@@ -1745,4 +1682,105 @@ numerical.labels <- function(map)
     centroid.labels[[ix,iy]] <- append(centroid.labels[[ix,iy]],label)
   }
   centroid.labels
+}
+
+########################## research stuff ###########################
+
+# compute.nwcss -- compute the average within cluster sum of squares
+#                  of neuron clusters
+compute.nwcss <- function (map)
+{
+  # for each cluster gather all the point vectors that belong to that
+  # cluster into table 'vectors' making sure that the centroid vector
+  # is always the first vector in the table.  Then compute the
+  # sum square distances from the centroid to all the points.
+  # when computing the average make sure that we ignore the centroid vector.
+  clusters.ss <- c()
+  for (cluster.ix in 1:length(map$unique.centroids))
+  {
+    c.x <- map$unique.centroids[[cluster.ix]]$x
+    c.y <- map$unique.centroids[[cluster.ix]]$y
+    c.nix <- rowix(map,c.x,c.y)
+    vectors <- map$neurons[c.nix,]
+    for (i in 1:length(map$centroid.obs[[cluster.ix]]))
+    {
+      obs.ix <- map$centroid.obs[[cluster.ix]][i]
+      obs.nix <- map$fitted[[obs.ix]]
+      obs.coord <- coordinate(map,obs.nix)
+      centroid.coord <- map$centroids[[obs.coord[1],obs.coord[2]]]
+      centroid.nix <- rowix(map,centroid.coord$x,centroid.coord$y)
+      if (centroid.nix == c.nix){
+        vectors <- rbind(vectors,map$neurons[obs.nix,])
+      }
+    }
+    distances <- as.matrix(dist(vectors))[1,]
+    distances.sqd <- sapply(distances,function(x){x*x})
+    c.ss <- sum(distances.sqd)/(length(distances.sqd)-1)
+    clusters.ss <- c(clusters.ss,c.ss)
+  }
+  wcss <- sum(clusters.ss)/length(clusters.ss)
+  wcss
+}
+
+# avg.homogeneity -- given labels another way to ascertain quality of the map
+avg.homogeneity <- function(map)
+{
+  if (is.null(map$labels))
+  {
+    stop("avg.homogeneity: you need to attach labels to the map")
+  }
+
+  # need to make sure the map doesn't have a dimension of 1
+  if (map$xdim <= 1 || map$ydim <= 1)
+  {
+    stop("avg.homogeneity: map dimensions too small")
+  }
+
+  x <- map$xdim
+  y <- map$ydim
+  centroids <- map$centroids
+  nobs <- nrow(map$data)
+  centroid.labels <- array(data=list(),dim=c(x,y))
+
+  #attach labels to centroids
+  # count the labels in each map cell
+  for(i in 1:nobs)
+  {
+   lab <- as.character(map$labels[i,1])
+   nix <- map$fitted.obs[i]
+   c <- coordinate(map,nix)
+   ix <- c[1]
+   iy <- c[2]
+   cx <- centroids[[ix,iy]]$x
+   cy <- centroids[[ix,iy]]$y
+   centroid.labels[[cx,cy]] <- append(centroid.labels[[cx,cy]],lab)
+  }
+
+  # compute average homogeneity of the map: h = (1/nobs)*sum_c majority.label_c
+  sum.majority <- 0
+  n.centroids <- 0
+
+  for (ix in 1:x)
+  {
+   for (iy in 1:y)
+   {
+     label.v <- centroid.labels[[ix,iy]]
+     if (length(label.v)!=0)
+     {
+       n.centroids <- n.centroids + 1
+       majority <- data.frame(sort(table(label.v),decreasing=TRUE))
+
+       if (nrow(majority) == 1) # only one label
+       {
+         m.val <- length(label.v)
+       }
+       else
+       {
+         m.val <- majority[1,2]
+       }
+       sum.majority <- sum.majority + m.val
+     }
+   }
+  }
+  list(homog=sum.majority/nobs, nclust=n.centroids)
 }
