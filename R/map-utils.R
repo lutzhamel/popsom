@@ -76,7 +76,7 @@ map <- function(data,
   if (!is.data.frame(data))
     stop("map: training data has to be a data frame")
 
-  if (!all(sapply(data,is.numeric))
+  if (!all(sapply(data,is.numeric)))
     stop("map: only numeric data can be used for training")
 
   if (!is.null(labels) && !is.data.frame(labels))
