@@ -70,9 +70,17 @@ map <- function(data,
                 train=1000,
                 normalize=TRUE)
 {
-  # check if the dims are reasonable
-	if (xdim < 3 || ydim < 3)
-		stop("build.map: map is too small.")
+  if (xdim < 5 || ydim < 5)
+		stop("map: map is too small.")
+
+  if (!is.data.frame(data))
+    stop("map: training data has to be a data frame")
+
+  if (!all(sapply(data,is.numeric))
+    stop("map: only numeric data can be used for training")
+
+  if (!is.null(labels) && !is.data.frame(labels))
+    labels <- data.frame(labels)
 
   if (normalize)
     data <- map.normalize(data)
