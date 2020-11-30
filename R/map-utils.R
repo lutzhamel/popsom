@@ -1543,33 +1543,20 @@ get.unique.centroids <- function(map)
   centroids <- map$centroids
   xdim <- map$xdim
   ydim <- map$ydim
-  xlist <- c()
-  ylist <- c()
-
+  cd.list <- c()
   for(ix in 1:xdim)
   {
     for(iy in 1:ydim)
     {
-      cx <- centroids[[ix, iy]]$x
-      cy <- centroids[[ix, iy]]$y
-
-      # Check if the x or y of the current centroid is not in the list and if not
-      # append both the x and y coordinates to the respective lists
-      if(!(cx %in% xlist) || !(cy %in% ylist)){
-        xlist <- c(xlist, cx)
-        ylist <- c(ylist, cy)
+      c.xy <- centroids[[ix, iy]]
+      b <- sapply(cd.list, function (x) {x$x == c.xy$x && x$y == c.xy$y})
+      if (!any(b))
+      {
+        cd.list <- c(cd.list,list(c.xy))
       }
     }
   }
-
-  # build the list of centroid locations
-  unique.centroids <- array(list(coord()),dim=length(xlist))
-
-  for (i in 1:length(xlist))
-  {
-    unique.centroids[[i]] <- coord(xlist[i],ylist[i])
-  }
-  as.vector(unique.centroids)
+  as.vector(cd.list)
 }
 
 
