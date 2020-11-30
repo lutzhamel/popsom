@@ -836,18 +836,11 @@ accuracy <- function(map,sample,data.ix)
 }
 
 # coord -- constructor for a 'coord' object
-coord <- function (x=0,y=0)
+coord <- function (x=-1,y=-1)
 {
   l <- list(x=x,y=y)
   class(l) <- "coord"
   l
-}
-
-format <- function(coord,...) UseMethod("format",coord)
-
-format.coord <- function (cd)
-{
-  return (cat("(",cd$x,",",cd$y,")"))
 }
 
 # coordinate -- convert from a row index to a map xy-coordinate
@@ -861,6 +854,9 @@ coordinate <- function(map,rowix)
 # rowix -- convert from a map xy-coordinate to a row index
 rowix <- function(map,cd)
 {
+    if (class(cd) != "coord")
+      stop("rowix: expected a coord object")
+
     rix <- cd$x + (cd$y-1)*map$xdim
     rix
 }
@@ -973,18 +969,7 @@ compute.centroids <- function(map)
 	xdim <- map$xdim
 	ydim <- map$ydim
   max.val <- max(heat)
-  # TODO: this should be an array of 'coord' objects
-	centroids <- array(data=list(),dim=c(xdim,ydim))
-
-  # init the centroids matrix
-  for (i in 1:xdim)
-  {
-    for (j in 1:ydim)
-    {
-      centroids[[i,j]]$x <- -1
-      centroids[[i,j]]$y <- -1
-    }
-  }
+	centroids <- array(data=list(coord()),dim=c(xdim,ydim))
 
   ########################################################################
   ### local recursive function to find the centroid of a point on the map
@@ -1307,7 +1292,7 @@ compute.centroids <- function(map)
 		# we have found a minimum -- this is our centroid.
 		else
     {
-			list(x=ix,y=iy)
+			coord(ix,iy)
 		}
 	} # end function compute.centroid
   ###########################################################################
@@ -1320,7 +1305,6 @@ compute.centroids <- function(map)
 			centroids[[i,j]] <- compute.centroid(i,j)
 		}
 	}
-
   centroids
 }
 
@@ -1598,15 +1582,11 @@ get.unique.centroids <- function(map)
   }
 
   # build the list of centroid locations
-  unique.centroids <- array(list(),dim=length(xlist))
+  unique.centroids <- array(list(coord()),dim=length(xlist))
 
   for (i in 1:length(xlist))
   {
-    # NOTE: it has to be list of list in the append because append
-    # will flatten the first list preserving the second list
-    # as representation of the centroid coordinate list(x=xpos,y=ypos)
-    unique.centroids[[i]]$x <- xlist[i]
-    unique.centroids[[i]]$y <- ylist[i]
+    unique.centroids[[i]] <- coord(xlist[i],ylist[i])
   }
   as.vector(unique.centroids)
 }
