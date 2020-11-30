@@ -243,11 +243,9 @@ marginal.map <- function(map,marginal)
 
     hist <- rbind(train,neurons)
     ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(names(map$data)[marginal])
-
   }
   else if (marginal %in% names(map$data))
   {
-
     train <- data.frame(points = map$data[names(map$data) == marginal])
     colnames(train) <- c("points")
 
@@ -319,11 +317,10 @@ predict.map <- function (map,points)
     coord <- coordinate(map,nix)
     ix <- coord$x
     iy <- coord$y
-    c.x <- map$centroids[[ix,iy]]$x
-    c.y <- map$centroids[[ix,iy]]$y
-    c.nix <- rowix(map,coord(c.x,c.y))
-    label <- map$centroid.labels[[c.x,c.y]][[1]]
-    c.ix <- find.centroidix(map,c.x,c.y)
+    c.xy <- map$centroids[[ix,iy]]
+    c.nix <- rowix(map,c.xy)
+    label <- map$centroid.labels[[c.xy$x,c.xy$y]][[1]]
+    c.ix <- find.centroidix(map,c.xy)
 
     # compute the confidence of the prediction
     # compute x to centroid distance
@@ -394,12 +391,12 @@ position.map <- function (map,points)
 
 # find.centroidix -- given a coordinate find the ix into the
 #                    unique.centroids table
-find.centroidix <- function (map,ix,iy)
+find.centroidix <- function (map,cd)
 {
   for (i in 1:length(map$unique.centroids))
   {
-    if (ix == map$unique.centroids[[i]]$x &&
-        iy == map$unique.centroids[[i]]$y)
+    if (cd$x == map$unique.centroids[[i]]$x &&
+        cd$y == map$unique.centroids[[i]]$y)
       {
         return (i)
       }
@@ -548,22 +545,6 @@ compute.label.to.centroid <- function (map)
     }
   }
   conv
-}
-
-# map.neuron - returns the contents of a neuron at (x,y) on the map as a vector
-# parameters:
-#   map - the neuron map
-#   x - map x-coordinate of neuron
-#   y - map y-coordinate of neuron
-# return value:
-#   a vector representing the neuron
-map.neuron <- function(map,x,y)
-{
-    if (class(map) != "map")
-        stop("map.neuron: first argument is not a map object.")
-
-    ix <- rowix(map,coord(x,y))
-    map$neurons[ix,]
 }
 
 # for each observation i, visual has an entry for

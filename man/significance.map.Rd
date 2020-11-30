@@ -3,7 +3,7 @@
 \title{Compute Significance Of Features}
 \description{Computes the relative significance of each feature and plots it.}
 \usage{
-significance(map,graphics=TRUE,feature.labels=TRUE)
+\S3method{significance}{map}(map,graphics=TRUE,feature.labels=TRUE)
 }
 \arguments{
   \item{map}{An object of type 'map'.}

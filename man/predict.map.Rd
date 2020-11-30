@@ -3,7 +3,7 @@
 \title{Compute Classification Labels for Given Points}
 \description{Compute classification labels for points in a given data frame using the underlying clustering model.  If the training data is unlabeled then generated labels are used.}
 \usage{
-predict(map,points)
+\S3method{predict}{map}(map,points)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -24,7 +24,7 @@ data(iris)
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
-m <- map(df, labels, xdim=15, ydim=10, train=10000)
+m <- map(df,labels,xdim=15,ydim=10,train=10000)
 
 predict(m,df)
 }

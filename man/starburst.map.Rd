@@ -3,7 +3,7 @@
 \title{Generate Starburst For Map}
 \description{Computes and displays the starburst representation of clusters on a map.}
 \usage{
-starburst(map)
+\S3method{starburst}{map}(map)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -22,7 +22,7 @@ data(iris)
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
-m <- map(df, labels, xdim=15, ydim=10, train=10000)
+m <- map(df,labels,xdim=15,ydim=10,train=100000)
 
 starburst(m)
 }

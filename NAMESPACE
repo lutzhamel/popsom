@@ -3,15 +3,10 @@ import(fields,graphics,ggplot2,hash)
 importFrom("grDevices", "heat.colors")
 importFrom("stats", "dist", "ks.test", "runif", "t.test", "var", "var.test")
 importFrom("utils", "combn")
-export(
-  "map.build",
-  "map.convergence",
-  "map.embed",
-  "map.topo",
-  "map.starburst",
-  "map.projection",
-  "map.significance",
-  "map.neuron",
-  "map.marginal"
-)
-
+export("map")
+S3Method(starburst,map)
+S3Method(fitted,map)
+S3Method(predict,map)
+S3Method(position,map)
+S3Method(significance,map)
+S3Method(marginal,map)

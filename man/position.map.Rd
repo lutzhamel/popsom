@@ -3,7 +3,7 @@
 \title{Compute Map Positions for Given Points}
 \description{Compute the (x,y)-positions of points on the map.}
 \usage{
-position(map,points)
+\S3method{position}{map}(map,points)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -24,7 +24,7 @@ data(iris)
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
-m <- map(df, labels, xdim=15, ydim=10, train=10000)
+m <- map(df,labels,xdim=15,ydim=10,train=10000)
 
 position(m,df)
 }
