@@ -60,6 +60,7 @@ marginal <- function (map,...) UseMethod("marginal",map)
 # - alpha - the learning rate, should be a positive non-zero real number
 # - train - number of training iterations
 # - normalize - normalize the input data by row
+# - seed - a seed value for repeatablity of random initialization and selection
 # value:
 # - an object of type 'map' -- see below
 map <- function(data,
@@ -68,7 +69,8 @@ map <- function(data,
                 ydim=5,
                 alpha=.3,
                 train=1000,
-                normalize=TRUE)
+                normalize=TRUE,
+                seed=NULL)
 {
   if (xdim < 5 || ydim < 5)
 		stop("map: map is too small.")
@@ -85,12 +87,19 @@ map <- function(data,
   if (normalize)
     data <- map.normalize(data)
 
+  if (!is.null(seed) && seed <= 0)
+      stop("map: seed value has to be a positive integer value")
+
+  if (!is.null(seed))
+      seed <- as.integer(seed) # coerce into an int value
+
   # train the neural network
   neurons <- vsom.f(data,
                     xdim=xdim,
                     ydim=ydim,
                     alpha=alpha,
-                    train=train)
+                    train=train,
+                    seed=seed)
 
   # make the neuron data a data frame
   neurons <- data.frame(neurons)
@@ -238,7 +247,7 @@ marginal.map <- function(map,marginal)
 {
   # ensure that map is a 'map' object
   if (class(map) != "map")
-    stop("map.marginal: first argument is not a map object.")
+    stop("marginal: first argument is not a map object.")
 
   # check if the second argument is of type character
   if (!typeof(marginal) == "character")
@@ -1511,7 +1520,7 @@ df.mean.test <- function(df1,df2,conf = .95)
 
 # vsom.f - vectorized and optimized version of the stochastic
 # SOM training algorithm written in Fortran90
-vsom.f <- function(data,xdim,ydim,alpha,train)
+vsom.f <- function(data,xdim,ydim,alpha,train,seed)
 {
     ### some constants
     dr <- nrow(data)
@@ -1520,11 +1529,19 @@ vsom.f <- function(data,xdim,ydim,alpha,train)
     nc <- dc # dim of data and neurons is the same
 
     ### build and initialize the matrix holding the neurons
+    if (!is.null(seed))
+    {
+        set.seed(seed)
+    }
+    else
+    {
+        # send a -1 to Fortran function to indicate no seed present
+        seed <- -1
+    }
     cells <- nr * nc        # no. of neurons times number of data dimensions
     v <- runif(cells,-1,1)  # vector with small init values for all neurons
     # NOTE: each row represents a neuron, each column represents a dimension.
     neurons <- matrix(v,nrow=nr,ncol=nc)  # rearrange the vector as matrix
-
 
     result <- .Fortran("vsom",
                        as.single(neurons),
@@ -1535,7 +1552,9 @@ vsom.f <- function(data,xdim,ydim,alpha,train)
                        as.integer(ydim),
                        as.single(alpha),
                        as.integer(train),
-                       PACKAGE="popsom")
+                       as.integer(seed))
+#                       as.integer(seed),
+#                       PACKAGE="popsom")
 
     # unpack the structure and list in result[1]
     v <- result[1]

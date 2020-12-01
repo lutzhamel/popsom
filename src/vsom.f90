@@ -1,5 +1,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! vectorized version of the stochastic SOM training algorithm
+! an implementation of the stochastic SOM training algorithm based on
+! ideas from tensor algebra
 ! written by Lutz Hamel, University of Rhode Island (c) 2016
 !
 ! LICENSE: This program is free software; you can redistribute it and/or modify it
@@ -17,12 +18,12 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!! vsom !!!!!!
-subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
+subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train,seed)
     implicit none
 
     !!! Input/Output
     ! NOTE: neurons are assumed to be initialized to small random values and then trained.
-    integer(kind=4),intent(in)  :: dtrows,dtcols,xdim,ydim,train
+    integer(kind=4),intent(in)  :: dtrows,dtcols,xdim,ydim,train,seed
     real(kind=4),intent(in)     :: alpha
     real(kind=4),intent(inout)  :: neurons(1:xdim*ydim,1:dtcols)
     real(kind=4),intent(in)     :: dt(1:dtrows,1:dtcols)
@@ -44,13 +45,19 @@ subroutine vsom(neurons,dt,dtrows,dtcols,xdim,ydim,alpha,train)
     integer(kind=4) :: coord_lookup(1:xdim*ydim,1:2)
     integer(kind=4) :: ix
     real(kind=4)    :: ix_random
+    integer(kind=4) :: n
 
     !!! setup
     nsize = max(xdim,ydim) + 1
     nsize_step = ceiling((train*1.0)/nsize)
     step_counter = 0
     cache_valid = .false.
-    call random_seed()
+    if (seed > 0) then
+       call random_seed(size=n)
+       call random_seed(put=[ (seed, i = 1, n) ])
+    else
+       call random_seed()
+    end if
 
     ! fill the 2D coordinate lookup table that associates each
     ! 1D neuron coordinate with a 2D map coordinate
