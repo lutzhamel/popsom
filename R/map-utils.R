@@ -90,8 +90,11 @@ map <- function(data,
   if (!is.null(seed) && seed <= 0)
       stop("map: seed value has to be a positive integer value")
 
-  if (!is.null(seed))
-      seed <- as.integer(seed) # coerce into an int value
+  if (!is.null(seed) && !test.integer(seed))
+      stop("map: seed value has to be a positive integer value")
+      
+  if (!test.integer(train))
+      stop("map: train value has to be a positive integer value")
 
   # train the neural network
   neurons <- vsom.f(data,
@@ -302,7 +305,7 @@ fitted.map <- function(map)
     c.x <- map$centroids[[x,y]]$x
     c.y <- map$centroids[[x,y]]$y
     l <- map$centroid.labels[[c.x,c.y]]
-    labels <- c(labels,l[[1]])
+    labels <- c(labels,l)
   }
   labels
 }
@@ -336,7 +339,7 @@ predict.map <- function (map,points)
     iy <- coord$y
     c.xy <- map$centroids[[ix,iy]]
     c.nix <- rowix(map,c.xy)
-    label <- map$centroid.labels[[c.xy$x,c.xy$y]][[1]]
+    label <- map$centroid.labels[[c.xy$x,c.xy$y]]
     c.ix <- find.centroidix(map,c.xy)
 
     # compute the confidence of the prediction
@@ -405,6 +408,12 @@ position.map <- function (map,points)
 #############################################################################
 ############################# local functions ###############################
 #############################################################################
+
+# test.integer -- test to see if x is an integer value
+test.integer <- function(x)
+{
+  all.equal(x, as.integer(x), check.attributes = FALSE)
+}
 
 # find.centroidix -- given a coordinate find the ix into the
 #                    unique.centroids table
@@ -551,15 +560,15 @@ compute.label.to.centroid <- function (map)
   {
     x <- map$unique.centroids[[i]]$x
     y <- map$unique.centroids[[i]]$y
-    l <- map$centroid.labels[[x,y]][[1]]
-#    if (is.null(conv[[l]]))
-#    {
-#      conv[[l]] <- list(i)
-#    }
-#    else
-#    {
-      conv[[l]] <- append(list(i),conv[[l]])
-#    }
+    l <- map$centroid.labels[[x,y]]
+    if (is.null(conv[[l]]))
+    {
+      conv[[l]] <- list(i)
+    }
+    else
+    {
+      conv[[l]] <- append(conv[[l]],i)
+    }
   }
   conv
 }
@@ -937,16 +946,15 @@ plot.heat <- function(map)
   # Note: if labels were not given then the function majority.labels
   # will compute numerical labels to attach to the centroids.
   centroid.labels <- majority.labels(map)
-  # print(centroid.labels)
 
   for(ix in 1:x)
   {
     for (iy in 1:y)
     {
-      lab.l <- centroid.labels[[ix,iy]]
-      if (length(lab.l)!=0)
+      lab <- centroid.labels[[ix,iy]]
+      if (lab != none.label)
       {
-        text(ix-.5,iy-.5,labels=lab.l[1])
+        text(ix-.5,iy-.5,labels=lab)
       }
     }
   }
@@ -1589,6 +1597,9 @@ get.unique.centroids <- function(map)
 
 # majority.labels -- return a map where the positions of the centroids
 # has the majority label of the appropriate cluster attached to them.
+
+none.label <- "<None>"
+
 majority.labels <- function(map)
 {
   if (is.null(map$labels))
@@ -1602,7 +1613,7 @@ majority.labels <- function(map)
   centroids <- map$centroids
   nobs <- nrow(map$data)
   centroid.labels <- array(data=list(),dim=c(x,y))
-  majority.labels <- array(data=list(),dim=c(x,y))
+  majority.labels <- array(data=none.label,dim=c(x,y))
 
   # gather the labels from the clusters and record them
   # at the centroid position.
@@ -1630,11 +1641,11 @@ majority.labels <- function(map)
        if (nrow(majority) == 1) # only one label
        {
          # just copy a label from the label vector
-         majority.labels[[ix,iy]] <- append(majority.labels[[ix,iy]],label.v[1])
+         majority.labels[[ix,iy]] <- label.v[1]
        }
        else
        {
-         majority.labels[[ix,iy]] <- append(majority.labels[[ix,iy]],levels(majority[1,1])[1])
+         majority.labels[[ix,iy]] <- levels(majority[1,1])[1]
        }
      }
    }
@@ -1648,17 +1659,18 @@ numerical.labels <- function(map)
   label_cnt <- 1
   centroids <- map$centroids
   unique.centroids <- map$unique.centroids
-  centroid.labels <- array(data=list(),dim=c(map$xdim,map$ydim))
+  centroid.labels <- array(data=none.label,dim=c(map$xdim,map$ydim))
 
   # set our labels at the centroid locations
   for (i in 1:length(unique.centroids))
   {
+    # create a label
     label <- paste("centroid",label_cnt,sep=" ")
     label_cnt <- label_cnt+1
     ix <- unique.centroids[[i]]$x
     iy <- unique.centroids[[i]]$y
     #cat("coord",ix,iy,label,"\n")
-    centroid.labels[[ix,iy]] <- append(centroid.labels[[ix,iy]],label)
+    centroid.labels[[ix,iy]] <- label
   }
   centroid.labels
 }
