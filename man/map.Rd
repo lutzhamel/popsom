@@ -3,16 +3,17 @@
 \title{Build Map}
 \description{Construct a self-organizing map and return an object of class 'map}
 \usage{
-map(data,labels=NULL,xdim=10,ydim=5,alpha=0.3,train=1000,normalize=TRUE)
+map(data,labels=NULL,xdim=10,ydim=5,alpha=0.3,train=1000,normalize=TRUE,seed=NULL)
 }
 \arguments{
   \item{data}{A dataframe where each row contains an unlabeled training instance.}
   \item{labels}{A vector or dataframe with one label for each observation in data.}
-  \item{xdim}{The x-dimension of the map. (default=10)}
-  \item{ydim}{The y-dimension of the map. (default=5)}
-  \item{alpha}{The learning rate, should be a positive non-zero real number. (default=0.3)}
-  \item{train}{The number of training iterations. (default=1000)}
-  \item{normalize}{Boolean switch indicating whether or not to normalize the data. (default=TRUE)}
+  \item{xdim}{The x-dimension of the map.}
+  \item{ydim}{The y-dimension of the map.}
+  \item{alpha}{The learning rate, should be a positive non-zero real number.}
+  \item{train}{The number of training iterations.}
+  \item{normalize}{Boolean switch indicating whether or not to normalize the data.}
+  \item{seed}{A seed value for repeatablity of random initialization and selection.}
 }
 \details{The function 'map' constructs an object of type 'map'. The object contains two models: (1) A self-organizing map model expressed through its trained neurons and its quality of fit can be ascertained by the 'convergence' (see below). (2) A cluster model expressed by the discovered centroids.  The quality of these models can be ascertained by the 'map convergence', 'within cluster sum of squares', and the 'between cluster sum of squares' (see below).}
 
