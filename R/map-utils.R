@@ -92,7 +92,7 @@ map <- function(data,
 
   if (!is.null(seed) && !test.integer(seed))
       stop("map: seed value has to be a positive integer value")
-      
+
   if (!test.integer(train))
       stop("map: train value has to be a positive integer value")
 
@@ -1560,9 +1560,9 @@ vsom.f <- function(data,xdim,ydim,alpha,train,seed)
                        as.integer(ydim),
                        as.single(alpha),
                        as.integer(train),
-                       as.integer(seed))
-#                       as.integer(seed),
-#                       PACKAGE="popsom")
+#                       as.integer(seed))
+                       as.integer(seed),
+                       PACKAGE="popsom")
 
     # unpack the structure and list in result[1]
     v <- result[1]

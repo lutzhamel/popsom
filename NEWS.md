@@ -1,4 +1,4 @@
-### Release 5.0
+### POPSOM Release 5.0
 
 - completely rearchitected package
 - new, streamlined S3 based API
