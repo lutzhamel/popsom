@@ -552,14 +552,14 @@ compute.label.to.centroid <- function (map)
     x <- map$unique.centroids[[i]]$x
     y <- map$unique.centroids[[i]]$y
     l <- map$centroid.labels[[x,y]][[1]]
-    if (is.null(conv[[l]]))
-    {
-      conv[[l]] <- list(i)
-    }
-    else
-    {
-      conv[[l]] <- append(conv[[l]],i)
-    }
+#    if (is.null(conv[[l]]))
+#    {
+#      conv[[l]] <- list(i)
+#    }
+#    else
+#    {
+      conv[[l]] <- append(list(i),conv[[l]])
+#    }
   }
   conv
 }
