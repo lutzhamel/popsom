@@ -1,7 +1,7 @@
 Package: popsom
 Version: 5.0
 Date: 2020-12-02
-Title: Functions for Constructing and Evaluating Self-Organizing Maps
+Title: Tools for Building, Visualizing, and Evaluating Self-Organizing Maps
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
              person("Benjamin", "Ott", role = "aut"),
              person("Gregory", "Breard", role = "aut"),
