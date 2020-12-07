@@ -42,12 +42,12 @@ require(ggplot2)
 require(hash)
 
 # S3 interface
-starburst <- function (map,...) UseMethod("starburst",map)
-fitted <- function (map,...) UseMethod("fitted",map)
-predict <- function (map,...) UseMethod("predict",map)
-position <- function (map,...) UseMethod("position",map)
-significance <- function (map,...) UseMethod("significance",map)
-marginal <- function (map,...) UseMethod("marginal",map)
+starburst <- function (map) UseMethod("starburst",map)
+fitted <- function (map) UseMethod("fitted",map)
+predict <- function (map,points) UseMethod("predict",map)
+position <- function (map,points) UseMethod("position",map)
+significance <- function (map,graphics, feature.labels) UseMethod("significance",map)
+marginal <- function (map,marginal) UseMethod("marginal",map)
 
 ### constructor ###
 

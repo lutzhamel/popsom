@@ -1,5 +1,6 @@
 \name{marginal}
 \alias{marginal}
+\alias{marginal.map}
 \title{Plot Marginal Distribution}
 \description{Generate a plot that shows the marginal probability distribution of the neurons and data.}
 \usage{

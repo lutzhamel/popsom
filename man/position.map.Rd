@@ -1,5 +1,6 @@
 \name{position}
 \alias{position}
+\alias{position.map}
 \title{Compute Map Positions for Given Points}
 \description{Compute the (x,y)-positions of points on the map.}
 \usage{
@@ -16,7 +17,6 @@
 }
 }
 
-}
 \author{Lutz Hamel}
 \examples{
 data(iris)

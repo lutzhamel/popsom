@@ -1,5 +1,6 @@
 \name{predict}
 \alias{predict}
+\alias{predict.map}
 \title{Compute Classification Labels for Given Points}
 \description{Compute classification labels for points in a given data frame using the underlying clustering model.  If the training data is unlabeled then generated labels are used.}
 \usage{
@@ -16,7 +17,6 @@
 }
 }
 
-}
 \author{Lutz Hamel}
 \examples{
 data(iris)

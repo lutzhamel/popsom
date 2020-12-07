@@ -8,8 +8,14 @@ Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@
              person("Robert", "Tatoian", role = "aut"),
              person("Michael", "Eiger", role = "aut"),
              person("Vishakh", "Gopu", role = "aut"))
+Author: Lutz Hamel [aut,cre],
+    Benjamin Ott [aut],
+    Gregory Breard [aut],
+    Robert Tatoian [aut],
+    Michael Eiger [aut],
+    Vishak Gopu [aut]
 Maintainer: Lutz Hamel <lutzhamel@uri.edu>
-Imports: fields, graphics, ggplot2, hash
+Imports: fields, graphics, ggplot2, hash,stats,grDevices
 Description: A self-organizing map package with three distinguishing features:
   (1) Automatic cluster centroid detection and visualization using starbursts.
   (2) Maintains two models of the data: (a) a self-organizing map model (b) a centroid based clustering model.

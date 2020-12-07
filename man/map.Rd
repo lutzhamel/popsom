@@ -30,12 +30,12 @@ data frame is the same as the training data.  The following two formulas
 come in handy when working with the neural data.  The first set of computations
 provide the x and y coordinate on the map of the neuron in row 'rowix' of the 'neurons' data frame,
 \preformatted{
-    x <- (rowix-1) %% map$xdim + 1
-    y <- (rowix-1) %/% map$xdim + 1
+    x <- (rowix-1)\%\%map$xdim+1
+    y <- (rowix-1)\%/\%map$xdim+1
 }
 The second formula computes the row of the neuron in position (x,y) on the map,
 \preformatted{
-    rowix <- x + (y-1)*map$xdim
+    rowix <- x+(y-1)*map$xdim
 }}
 \item{heat}{This is the representation of the map which is the basis for the 'starburst' plot.}
 \item{fitted.obs}{List of indexes of the best matching neuron for each observation.  Each index is an row index into the 'neuron' data frame.}
@@ -50,7 +50,7 @@ by the centroid number from 'unique.centroids'.  The observations on the list ar
 \item{convergence}{A quality measure of how well the map fits the training data.}
 \item{wcss}{The average 'within cluster sum of squares'. This is the average
 distance variance within the clusters of the underlying cluster model.}
-\item{bcss}{The 'between cluster sum of squares'.  This is the distance 
+\item{bcss}{The 'between cluster sum of squares'.  This is the distance
 variance between the cluster centroids of the underlying cluster model.}
 }
 }

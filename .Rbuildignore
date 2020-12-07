@@ -1,6 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-
-if (FALSE) {
-use_build_ignore("[.]md$", escape = FALSE)
-}
+R/\.RData
+src/\.RData
+examples
+src/.*\.o
+src/.*\.so
+map\.png
+README\.md
