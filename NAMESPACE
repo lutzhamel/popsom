@@ -2,9 +2,9 @@ useDynLib(popsom, .registration = TRUE)
 import(graphics,ggplot2)
 importFrom("grDevices", "heat.colors")
 importFrom("stats", "dist", "ks.test", "runif", "t.test", "var", "var.test")
-#importFrom("utils", "combn")
 importFrom("fields","smooth.2d")
 importFrom("hash","hash")
+
 export("map")
 
 export("starburst")
