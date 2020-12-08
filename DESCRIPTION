@@ -13,7 +13,7 @@ Author: Lutz Hamel [aut,cre],
     Gregory Breard [aut],
     Robert Tatoian [aut],
     Michael Eiger [aut],
-    Vishak Gopu [aut]
+    Vishakh Gopu [aut]
 Maintainer: Lutz Hamel <lutzhamel@uri.edu>
 Imports: fields, graphics, ggplot2, hash,stats,grDevices
 Description: A self-organizing map package with three distinguishing features:
