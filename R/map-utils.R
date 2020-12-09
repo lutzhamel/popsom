@@ -42,12 +42,12 @@ require(ggplot2)
 require(hash)
 
 # S3 interface
-starburst <- function (map) UseMethod("starburst",map)
-fitted <- function (map) UseMethod("fitted",map)
-predict <- function (map,points) UseMethod("predict",map)
-position <- function (map,points) UseMethod("position",map)
-significance <- function (map,graphics, feature.labels) UseMethod("significance",map)
-marginal <- function (map,marginal) UseMethod("marginal",map)
+fitted <- function (object,...) UseMethod("fitted",object)
+marginal <- function (object,marginal,...) UseMethod("marginal",object)
+position <- function (object,points,...) UseMethod("position",object)
+predict <- function (object,points,...) UseMethod("predict",object)
+significance <- function (object,graphics, feature.labels,...) UseMethod("significance",object)
+starburst <- function (object,...) UseMethod("starburst",object)
 
 ### constructor ###
 
@@ -172,28 +172,28 @@ map <- function(data,
 
 # starburst.map - compute and display the starburst representation of clusters
 # parameters:
-# - map is an object if type 'map'
-starburst.map <- function(map)
+# - object is an object if type 'map'
+starburst.map <- function(object,...)
 {
-	if (class(map) != "map")
+	if (class(object) != "map")
 		stop("starburst.map: first argument is not a map object.")
 
-	plot.heat(map)
+	plot.heat(object)
 }
 
 # significance.map - compute the relative significance of each feature and plot it
 # parameters:
-# - map is an object if type 'map'
+# - object is an object if type 'map'
 # - graphics is a switch that controls whether a plot is generated or not
 # - feature.labels is a switch to allow the plotting of feature names vs feature indices
 # return value:
 # - a vector containing the significance for each feature
-significance.map <- function(map,graphics=TRUE,feature.labels=TRUE)
+significance.map <- function(object,graphics=TRUE,feature.labels=TRUE,...)
 {
-	if (class(map) != "map")
+	if (class(object) != "map")
 		stop("significance.map: first argument is not a map object.")
 
-	data.df <- data.frame(map$data)
+	data.df <- data.frame(object$data)
 	nfeatures <- ncol(data.df)
 
 	# Compute the variance of each feature on the map
@@ -244,32 +244,32 @@ significance.map <- function(map,graphics=TRUE,feature.labels=TRUE)
 
 # marginal.map - plot that shows the marginal probability distribution of the neurons and data
 # parameters:
-# - map is an object of type 'map'
+# - object is an object of type 'map'
 # - marginal is the name of a training data frame dimension or index
-marginal.map <- function(map,marginal)
+marginal.map <- function(object,marginal,...)
 {
-  # ensure that map is a 'map' object
-  if (class(map) != "map")
+  # ensure that object is a 'map' object
+  if (class(object) != "map")
     stop("marginal: first argument is not a map object.")
 
   # check if the second argument is of type character
   if (!typeof(marginal) == "character")
   {
-    train <- data.frame(points = map$data[[marginal]])
-    neurons <- data.frame(points = map$neurons[[marginal]])
+    train <- data.frame(points = object$data[[marginal]])
+    neurons <- data.frame(points = object$neurons[[marginal]])
 
     train$legend <- 'training data'
     neurons$legend <- 'neurons'
 
     hist <- rbind(train,neurons)
-    ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(names(map$data)[marginal])
+    ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(names(object$data)[marginal])
   }
-  else if (marginal %in% names(map$data))
+  else if (marginal %in% names(object$data))
   {
-    train <- data.frame(points = map$data[names(map$data) == marginal])
+    train <- data.frame(points = object$data[names(object$data) == marginal])
     colnames(train) <- c("points")
 
-    neurons <- data.frame(points = map$neurons[names(map$neurons) == marginal])
+    neurons <- data.frame(points = object$neurons[names(object$neurons) == marginal])
     colnames(neurons) <- c("points")
 
     train$legend <- 'training data'
@@ -286,25 +286,25 @@ marginal.map <- function(map,marginal)
 
 # fitted.map -- returns a vector of labels assigned to the observations
 # parameters:
-# - map is an object of type 'map'
+# - object is an object of type 'map'
 # value:
 # - a vector of labels
-fitted.map <- function(map)
+fitted.map <- function(object,...)
 {
-  if (class(map) != "map")
+  if (class(object) != "map")
     stop("fitted.map: first argument is not a map object.")
 
-  nobs <- length(map$fitted.obs)
+  nobs <- length(object$fitted.obs)
   labels <- c()
   for (i in 1:nobs)
   {
-    nix <- map$fitted.obs[[i]]
-    coord <- coordinate(map,nix)
+    nix <- object$fitted.obs[[i]]
+    coord <- coordinate(object,nix)
     x <- coord$x
     y <- coord$y
-    c.x <- map$centroids[[x,y]]$x
-    c.y <- map$centroids[[x,y]]$y
-    l <- map$centroid.labels[[c.x,c.y]]
+    c.x <- object$centroids[[x,y]]$x
+    c.y <- object$centroids[[x,y]]$y
+    l <- object$centroid.labels[[c.x,c.y]]
     labels <- c(labels,l)
   }
   labels
@@ -312,11 +312,11 @@ fitted.map <- function(map)
 
 # predict.map -- returns classification labels for points in DF
 # parameters:
-# - map -- map object
+# - object -- map object
 # - points  -- data frame of points to be classified
 # value:
 # - the label of the centroid x belongs to
-predict.map <- function (map,points)
+predict.map <- function (object,points,...)
 {
   # local function to do the actual prediction
   predict.point <- function (x)
@@ -324,36 +324,36 @@ predict.map <- function (map,points)
     if (!is.vector(x))
       stop("predict.map: argument has to be a vector.")
 
-    if (length(x) != ncol(map$data))
+    if (length(x) != ncol(object$data))
       stop("predict.map: vector dimensionality is incompatible")
 
-    if (map$normalize)
+    if (object$normalize)
       x <- as.vector(map.normalize(x))
 
     # find best matching neuron
-    nix <- best.match(map,x)
+    nix <- best.match(object,x)
 
     # find corresponding centroid
-    coord <- coordinate(map,nix)
+    coord <- coordinate(object,nix)
     ix <- coord$x
     iy <- coord$y
-    c.xy <- map$centroids[[ix,iy]]
-    c.nix <- rowix(map,c.xy)
-    label <- map$centroid.labels[[c.xy$x,c.xy$y]]
-    c.ix <- find.centroidix(map,c.xy)
+    c.xy <- object$centroids[[ix,iy]]
+    c.nix <- rowix(object,c.xy)
+    label <- object$centroid.labels[[c.xy$x,c.xy$y]]
+    c.ix <- find.centroidix(object,c.xy)
 
     # compute the confidence of the prediction
     # compute x to centroid distance
-    vectors <- rbind(map$neurons[c.nix,],x)
+    vectors <- rbind(object$neurons[c.nix,],x)
     x.to.c.distance <- max(as.matrix(dist(vectors))[1,])
 
     # compute the max radius of cluster
     # NOTE: we are using the training data here NOT the neurons
-    vectors <- map$neurons[c.nix,]
-    for (i in 1:length(map$centroid.obs[[c.ix]]))
+    vectors <- object$neurons[c.nix,]
+    for (i in 1:length(object$centroid.obs[[c.ix]]))
     {
-      obs.ix <- map$centroid.obs[[c.ix]][i]
-      vectors <- rbind(vectors,map$data[obs.ix,])
+      obs.ix <- object$centroid.obs[[c.ix]][i]
+      vectors <- rbind(vectors,object$data[obs.ix,])
     }
     max.o.to.c.distance <- max(as.matrix(dist(vectors))[1,])
     # add a little bit of slack so we don't wind up with a 0 confidence value
@@ -374,11 +374,11 @@ predict.map <- function (map,points)
 
 # position.map -- return the position of points on the map
 # parameters:
-# - map -- map object
+# - object -- map object
 # - points   -- a data frame of points to be mapped
 # value:
 # - x-y coordinates of points in points
-position.map <- function (map,points)
+position.map <- function (object,points,...)
 {
   # local function to positon a point on the map
   position.point <- function(x)
@@ -386,14 +386,14 @@ position.map <- function (map,points)
     if (!is.vector(x))
       stop("position.map: argument has to be a vector.")
 
-    if (length(x) != ncol(map$data))
+    if (length(x) != ncol(object$data))
       stop("position.map: vector dimensionality is incompatible")
 
-    if (map$normalize)
+    if (object$normalize)
       x <- as.vector(map.normalize(x))
 
-    nix <- best.match(map,x)
-    coord <- coordinate(map,nix)
+    nix <- best.match(object,x)
+    coord <- coordinate(object,nix)
     return (c(coord$x,coord$y))
   }
 
@@ -417,12 +417,12 @@ test.integer <- function(x)
 
 # find.centroidix -- given a coordinate find the ix into the
 #                    unique.centroids table
-find.centroidix <- function (map,cd)
+find.centroidix <- function (object,cd)
 {
-  for (i in 1:length(map$unique.centroids))
+  for (i in 1:length(object$unique.centroids))
   {
-    if (cd$x == map$unique.centroids[[i]]$x &&
-        cd$y == map$unique.centroids[[i]]$y)
+    if (cd$x == object$unique.centroids[[i]]$x &&
+        cd$y == object$unique.centroids[[i]]$y)
       {
         return (i)
       }
@@ -432,20 +432,20 @@ find.centroidix <- function (map,cd)
 
 # compute.centroid.obs -- compute the observations that belong to each
 #                         centroid.
-compute.centroid.obs <- function (map)
+compute.centroid.obs <- function (object)
 {
-  centroid.obs <- array(list(),dim=length(map$unique.centroids))
+  centroid.obs <- array(list(),dim=length(object$unique.centroids))
 
-  for (cluster.ix in 1:length(map$unique.centroids))
+  for (cluster.ix in 1:length(object$unique.centroids))
   {
-    c.nix <- rowix(map,map$unique.centroids[[cluster.ix]])
-    for (i in 1:nrow(map$data))
+    c.nix <- rowix(object,object$unique.centroids[[cluster.ix]])
+    for (i in 1:nrow(object$data))
     {
       # find the centroid of the current observation's
       # best matching neuron
-      coord <- coordinate(map,map$fitted.obs[i])
+      coord <- coordinate(object,object$fitted.obs[i])
       # centroid of cluster the neuron belongs to
-      c.obj.nix <- rowix(map,map$centroids[[coord$x,coord$y]])
+      c.obj.nix <- rowix(object,object$centroids[[coord$x,coord$y]])
       # if observation centroid equal current centroid add to vectors
       if (c.obj.nix == c.nix)
       {

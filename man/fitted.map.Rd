@@ -4,10 +4,11 @@
 \title{Fit Observations}
 \description{Computes a vector of labels assigned to each of the observations in the training data through the constructed cluster model.  If the training data is unlabeled then generated labels are used.}
 \usage{
-\S3method{fitted}{map}(map)
+\S3method{fitted}{map}(object,...)
 }
 \arguments{
-  \item{map}{An object of type 'map'.}
+  \item{object}{An object of type 'map'.}
+  \item{...}{Not used.}
 }
 \value{A vector of predicted labels, one for each observations in the training data.}
 

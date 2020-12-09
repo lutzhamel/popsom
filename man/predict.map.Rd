@@ -4,11 +4,12 @@
 \title{Compute Classification Labels for Given Points}
 \description{Compute classification labels for points in a given data frame using the underlying clustering model.  If the training data is unlabeled then generated labels are used.}
 \usage{
-\S3method{predict}{map}(map,points)
+\S3method{predict}{map}(object,points,...)
 }
 \arguments{
-  \item{map}{An object of type 'map'.}
+  \item{object}{An object of type 'map'.}
   \item{points}{A data frame of points to be classified.}
+  \item{...}{Not used.}
 }
 \value{A data frame with classification results.  The data frame has two columns:
 \describe{

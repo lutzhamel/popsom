@@ -4,10 +4,11 @@
 \title{Generate Starburst For Map}
 
 \usage{
-\S3method{starburst}{map}(map)
+\S3method{starburst}{map}(object,...)
 }
 \arguments{
-  \item{map}{An object of type 'map'.}
+  \item{object}{An object of type 'map'}
+  \item{...}{Not used.}
 }
 
 \description{
