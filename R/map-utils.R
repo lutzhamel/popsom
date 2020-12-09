@@ -1,5 +1,5 @@
 ### map-utils.R
-# version 5.0.0
+# version 5.0.1
 # (c) 2009-2020 University of Rhode Island
 #               Lutz Hamel, Benjamin Ott, Greg Breard,
 #               Robert Tatoian, Vishakh Gopu, Michael Eiger

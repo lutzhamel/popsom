@@ -1,5 +1,5 @@
 Package: popsom
-Version: 5.0
+Version: 5.0.1
 Date: 2020-12-02
 Title: Tools for Building, Visualizing, and Evaluating Self-Organizing Maps
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
