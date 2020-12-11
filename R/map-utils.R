@@ -46,8 +46,10 @@ fitted <- function (object,...) UseMethod("fitted",object)
 marginal <- function (object,marginal,...) UseMethod("marginal",object)
 position <- function (object,points,...) UseMethod("position",object)
 predict <- function (object,points,...) UseMethod("predict",object)
+print <- function (object,points,...) UseMethod("print",object)
 significance <- function (object,graphics, feature.labels,...) UseMethod("significance",object)
 starburst <- function (object,...) UseMethod("starburst",object)
+summary <- function (object,...) UseMethod("summary",object)
 
 ### constructor ###
 
@@ -169,6 +171,65 @@ map <- function(data,
 }
 
 ### implementation of S3 interface ###
+
+# summary.map - compute a summary object
+# parameters:
+#   object - an object of type 'map'
+# value:
+#   a summary object of type 'summary.map'
+summary.map <- function(object,...)
+{
+    if (class(object) != "map")
+		stop("summary.map: first argument is not a map object.")
+
+    value <- list()
+
+    # training parameters
+    header <- c("xdim",
+                "ydim",
+                "alpha",
+                "train",
+                "normalize",
+                "seed")
+    v <- c(object$xdim,
+	   object$ydim,
+	   object$alpha,
+	   object$train,
+	   object$normalize,
+	   if (is.null(object$seed)) "NULL" else object$seed)
+    df <- data.frame(t(v))
+    names(df) <- header
+    row.names(df) <- " "
+    value$training.parameters <- df
+
+    # quality assessments
+    header <- c("Convergence","Spread","Clusters")
+    v <- c(object$convergence,
+	1.0 - object$wcss/object$bcss,
+	length(object$unique.centroids))
+    df <- data.frame(t(v))
+    names(df) <- header
+    row.names(df) <- " "
+    value$quality.assessments <- df
+
+    class(value) <- "summary.map"
+    value
+}
+
+# print.summary.map -- print out the summary object
+# parameters:
+#  x - an object of type "summary.map"
+print.summary.map <- function(x,...)
+{
+	cat("\n")
+	cat("Training Parameters:\n")
+	print(x$training.parameters)
+	cat("\n")
+
+	cat("Quality Assessments:\n")
+	print(format(x$quality.assessments,digits=2))
+	cat("\n")
+}
 
 # starburst.map - compute and display the starburst representation of clusters
 # parameters:

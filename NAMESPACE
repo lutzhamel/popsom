@@ -17,6 +17,8 @@ export("position.map")
 export("predict.map")
 export("significance.map")
 export("starburst.map")
+export("summary.map")
+export("print.summary.map")
 
 # register S3 methods
 S3method("fitted","map")
@@ -25,6 +27,8 @@ S3method("position","map")
 S3method("predict","map")
 S3method("significance","map")
 S3method("starburst","map")
+S3method("summary","map")
+S3method("print","summary.map")
 
 # We have to expose our own generic functions since these are not
 # defined as generic functions anywhere else
