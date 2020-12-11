@@ -118,6 +118,7 @@ map <- function(data,
               alpha=alpha,
               train=train,
               normalize=normalize,
+              seed=seed,
               neurons=neurons)
 
   # add the class name
@@ -190,20 +191,22 @@ summary.map <- function(object,...)
                 "alpha",
                 "train",
                 "normalize",
-                "seed")
+                "seed",
+                "instances")
     v <- c(object$xdim,
 	   object$ydim,
 	   object$alpha,
 	   object$train,
-	   object$normalize,
-	   if (is.null(object$seed)) "NULL" else object$seed)
+	   if (object$normalize) "TRUE" else "FALSE",
+	   if (is.null(object$seed)) "NULL" else object$seed,
+       nrow(object$data))
     df <- data.frame(t(v))
     names(df) <- header
     row.names(df) <- " "
     value$training.parameters <- df
 
     # quality assessments
-    header <- c("Convergence","Spread","Clusters")
+    header <- c("convergence","spread","clusters")
     v <- c(object$convergence,
 	1.0 - object$wcss/object$bcss,
 	length(object$unique.centroids))
