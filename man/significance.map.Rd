@@ -17,7 +17,7 @@
 variance.}
 
 \references{
-"Bayesian Probability Approach to Feature Significance for Infrared Spectra of Bacteria,"
+Bayesian Probability Approach to Feature Significance for Infrared Spectra of Bacteria,
 Lutz Hamel, Chris W. Brown, Applied Spectroscopy, Volume 66, Number 1, 2012.
 }
 \author{Lutz Hamel}

@@ -17,8 +17,9 @@ An object of type 'summary.map' which contains two structures:
 \item{training.parameters}{A dataframe containing the parameters the map was trained with.}
 \item{quality.assessments}{A dataframe containing the quality assessments of the map. In particular, it
     contains the 'convergence'  of the map which is a linear combination of variance capture  and
-    topographic fidelity of the map.  Furthermore, it contains the 'spread' of the clusters indicating
-    the separation of the clusters.  This is computed by the formula,
+    topographic fidelity of the map. A value close to 1 means a converged map (for more details
+    see the reference below).  Furthermore, it contains the 'separation' of the clusters.
+    This is computed by the formula,
     \preformatted{ 1 - wcss/bcss}
     In general, a value close to 1 means well separated clusters.
 }
@@ -26,6 +27,9 @@ An object of type 'summary.map' which contains two structures:
 }
 
 \author{Lutz Hamel}
+\references{
+Self-Organizing Map Convergence, Robert Tatoian and Lutz Hamel. Proceedings of the 2016 International Conference on Data Mining (DMIN'16), pp92-98, July 25-28, 2016, Las Vegas, Nevada, USA, ISBN: 1-60132-431-6, CSREA Press.
+}
 \examples{
 data(iris)
 

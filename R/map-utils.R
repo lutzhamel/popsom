@@ -187,29 +187,29 @@ summary.map <- function(object,...)
 
     # training parameters
     header <- c("xdim",
-                "ydim",
-                "alpha",
-                "train",
-                "normalize",
-                "seed",
-                "instances")
+                            "ydim",
+                            "alpha",
+                            "train",
+                            "normalize",
+                            "seed",
+                            "instances")
     v <- c(object$xdim,
-	   object$ydim,
-	   object$alpha,
-	   object$train,
-	   if (object$normalize) "TRUE" else "FALSE",
-	   if (is.null(object$seed)) "NULL" else object$seed,
-       nrow(object$data))
+                object$ydim,
+                object$alpha,
+                object$train,
+                if (object$normalize) "TRUE" else "FALSE",
+                if (is.null(object$seed)) "NULL" else object$seed,
+                nrow(object$data))
     df <- data.frame(t(v))
     names(df) <- header
     row.names(df) <- " "
     value$training.parameters <- df
 
     # quality assessments
-    header <- c("convergence","spread","clusters")
+    header <- c("convergence","separation","clusters")
     v <- c(object$convergence,
-	1.0 - object$wcss/object$bcss,
-	length(object$unique.centroids))
+            	1.0 - object$wcss/object$bcss,
+            	length(object$unique.centroids))
     df <- data.frame(t(v))
     names(df) <- header
     row.names(df) <- " "
@@ -263,9 +263,9 @@ significance.map <- function(object,graphics=TRUE,feature.labels=TRUE,...)
 	# Compute the variance of each feature on the map
 	var.v <- array(data=1,dim=nfeatures)
 	for (i in 1:nfeatures)
-  {
+    {
 		var.v[i] <- var(data.df[[i]]);
-	}
+    }
 
 	# we use the variance of a feature as likelihood of
 	# being an important feature, compute the Bayesian
@@ -276,7 +276,7 @@ significance.map <- function(object,graphics=TRUE,feature.labels=TRUE,...)
 
 	# plot the significance
 	if (graphics)
-  {
+    {
 		par.v <- map.graphics.set()
 
 		y <- max(prob.v)
@@ -299,9 +299,9 @@ significance.map <- function(object,graphics=TRUE,feature.labels=TRUE,...)
 		points(1:nfeatures,prob.v,type="h")
 
 		map.graphics.reset(par.v)
-	}
-  else
-  {
+    }
+    else
+    {
 		prob.v
 	}
 }
