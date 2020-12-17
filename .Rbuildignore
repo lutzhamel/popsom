@@ -2,7 +2,6 @@
 ^\.Rproj\.user$
 R/\.RData
 src/\.RData
-examples
 src/.*\.o
 src/.*\.so
 map\.png

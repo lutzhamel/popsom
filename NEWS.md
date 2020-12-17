@@ -8,3 +8,8 @@
 - quality measures available for both models
 - cleaned up map visualization
 - extremely fast training algorithm based on ideas from tensor algebra
+
+### Release 5.0.1
+
+- fixed a bug in the NAMESPACE file
+- implemented the 'summary' function
