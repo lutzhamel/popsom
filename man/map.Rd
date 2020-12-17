@@ -80,11 +80,9 @@ labels <- subset(iris,select=Species)
 # build a map
 m <- map(df,labels,xdim=15,ydim=10,train=10000)
 
-# look at quality measures
-m$convergence   # map convergence
-m$wcss          # within cluster sum of squares
-m$bcss          # between cluster sum of squares
+# look at the characteristics of the maps
+summary(m)
 
-# number of clusters found
-length(m$unique.centroids)
+# plot the map
+starburst(m)
 }
