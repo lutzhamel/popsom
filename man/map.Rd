@@ -72,8 +72,8 @@ SOM Quality Measures: An Efficient Statistical Approach, Lutz Hamel, Proceedings
 }
 
 \examples{
+# training data
 data(iris)
-
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
