@@ -78,7 +78,7 @@ df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
 # build a map
-m <- map(df,labels,xdim=15,ydim=10,train=10000)
+m <- map(df,labels,xdim=15,ydim=10,train=10000,seed=42)
 
 # look at the characteristics of the maps
 summary(m)
