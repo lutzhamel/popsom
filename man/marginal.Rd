@@ -1,15 +1,13 @@
 \name{marginal}
 \alias{marginal}
-\alias{marginal.map}
 \title{Plot Marginal Distribution}
 \description{Generate a plot that shows the marginal probability distribution of the neurons and data.}
 \usage{
-\S3method{marginal}{map}(object,marginal,...)
+marginal(map,marginal)
 }
 \arguments{
-  \item{object}{An object of type 'map'.}
+  \item{map}{An object of type 'map'.}
   \item{marginal}{The name of a training data dimension or index.}
-    \item{...}{Not used.}
 }
 
 \author{Lutz Hamel, Robert Tatoian}

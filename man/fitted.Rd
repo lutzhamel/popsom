@@ -1,14 +1,12 @@
 \name{fitted}
 \alias{fitted}
-\alias{fitted.map}
 \title{Fit Observations}
 \description{Computes a vector of labels assigned to each of the observations in the training data through the constructed cluster model.  If the training data is unlabeled then generated labels are used.}
 \usage{
-\S3method{fitted}{map}(object,...)
+fitted(map)
 }
 \arguments{
-  \item{object}{An object of type 'map'.}
-  \item{...}{Not used.}
+  \item{map}{An object of type 'map'.}
 }
 \value{A vector of predicted labels, one for each observations in the training data.}
 

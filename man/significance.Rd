@@ -1,16 +1,14 @@
 \name{significance}
 \alias{significance}
-\alias{significance.map}
 \title{Compute Significance Of Features}
 \description{Computes the relative significance of each feature and plots it.}
 \usage{
-\S3method{significance}{map}(object,graphics=TRUE,feature.labels=TRUE,...)
+significance(map,graphics=TRUE,feature.labels=TRUE)
 }
 \arguments{
-  \item{object}{An object of type 'map'.}
+  \item{map}{An object of type 'map'.}
   \item{graphics}{A switch that controls whether a plot is generated or not.}
   \item{feature.labels}{A switch to allow the plotting of feature names vs feature indices.}
-  \item{...}{Not used.}
 }
 \value{If graphics=FALSE a vector containing the significance for each feature is returned.}
 \note{We use a Bayesian approach to compute the relative significance of features based on

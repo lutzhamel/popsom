@@ -9,7 +9,7 @@
 - cleaned up map visualization
 - extremely fast training algorithm based on ideas from tensor algebra
 
-### Release 5.0.1
+### Release 5.1
 
-- fixed a bug in the NAMESPACE file
-- implemented the 'summary' function
+- Something got rattled with the S3 interface in 4.x.  It no longer works the way it did in release 3.x.  I took the S3 interface out because I want the package to work with both 3.x and 4.x installations.  Furthermore, the advantages of the S3 interface are incremental at best and I don't feel like debugging R internals.
+- Implemented a 'summary' function for map objects.

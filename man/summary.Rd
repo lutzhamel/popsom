@@ -1,14 +1,12 @@
 \name{summary}
 \alias{summary}
-\alias{summary.map}
 \title{Summary Object for Map}
 \description{Generate a summary object for 'map' objects.}
 \usage{
-\S3method{summary}{map}(object,...)
+summary(map)
 }
 \arguments{
-  \item{object}{An object of type 'map'.}
-    \item{...}{Not used.}
+  \item{map}{An object of type 'map'.}
 }
 
 \value{
