@@ -41,6 +41,6 @@ labels <- subset(iris,select=Species)
 m <- map(df,labels,xdim=15,ydim=10,train=10000)
 
 ## compute a summary object and display it
-s <- summary(m)
+s <- summary(m,verb=FALSE)
 s
 }
