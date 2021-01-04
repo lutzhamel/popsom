@@ -3,10 +3,11 @@
 \title{Summary Object for Map}
 \description{Generate a summary object for 'map' objects.}
 \usage{
-summary(map)
+summary(map,verb=TRUE)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
+  \item{verb}{A switch controlling the output.}
 }
 
 \value{
@@ -19,9 +20,10 @@ An object of type 'summary.map' which contains two structures:
     see the reference below).  Furthermore, it contains the 'separation' of the clusters.
     This is computed by the formula,
     \preformatted{ 1 - wcss/bcss}
-    In general, a value close to 1 means well separated clusters.
+    In general, a value close to 1 means well separated clusters.}
 }
-}
+If 'verb' is TRUE the summar.map object will be formatted and printed to the screen, otherwise
+it will be returned as a data structure.
 }
 
 \author{Lutz Hamel}

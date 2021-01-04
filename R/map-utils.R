@@ -164,9 +164,10 @@ map <- function(data,
 # summary - compute a summary object
 # parameters:
 #   map - an object of type 'map'
+#   verb -  a switch controlling the output
 # value:
 #   a summary object of type 'summary.map'
-summary <- function(map)
+summary <- function(map, verb=TRUE)
 {
     if (class(map) != "map")
 		stop("summary: first argument is not a map object.")
@@ -204,7 +205,22 @@ summary <- function(map)
     value$quality.assessments <- df
 
     class(value) <- "summary.map"
-    value
+
+    if (verb)
+    {
+        cat("\n")
+        cat("Training Parameters:\n")
+        print(value$training.parameters)
+        cat("\n")
+
+        cat("Quality Assessments:\n")
+        print(format(value$quality.assessments,digits=2))
+        cat("\n")
+    }
+    else
+    {
+        value
+    }
 }
 
 # starburst - compute and display the starburst representation of clusters
