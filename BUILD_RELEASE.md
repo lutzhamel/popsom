@@ -14,13 +14,12 @@ If you don't have a copy of the popsom repo clone it:
 
 In order to build a release do the following:
 
- 1. Go to
-     the folder just above the local popsom repo and do:
+ 1. Go to the folder just above the local popsom repo and do:
 	```
 	$ R CMD build popsom
 	$ R CMD check --as-cran popsom_xyz.tar.gz
 	```
-	where `xyz` is the version number given in the DESCRIPTION file.  This build a folder called `popsom.Rcheck`.
+	where `xyz` is the version number given in the DESCRIPTION file.  This builds a folder called `popsom.Rcheck`.
 
 2. Submit tarball `popsom_xyz.tar.gz` to `https://cran.r-project.org/submit.html`
 

@@ -1,24 +1,18 @@
 Package: popsom
-Version: 5.1
-Date: 2020-12-26
-Title: Tools for Building, Visualizing, and Evaluating Self-Organizing Maps
+Version: 5.2
+Date: 2021-7-9
+Title: A Very Efficient Implementation of Kohonen's Self-Organizing Maps (SOMs) with Starburst Visualizations
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
              person("Benjamin", "Ott", role = "aut"),
              person("Gregory", "Breard", role = "aut"),
              person("Robert", "Tatoian", role = "aut"),
              person("Michael", "Eiger", role = "aut"),
              person("Vishakh", "Gopu", role = "aut"))
-Author: Lutz Hamel [aut, cre],
-    Benjamin Ott [aut],
-    Gregory Breard [aut],
-    Robert Tatoian [aut],
-    Michael Eiger [aut],
-    Vishakh Gopu [aut]
-Maintainer: Lutz Hamel <lutzhamel@uri.edu>
 Imports: fields, graphics, ggplot2, hash, stats, grDevices
-Description: A self-organizing map package with three distinguishing features:
-  (1) Automatic cluster centroid detection and visualization using starbursts.
-  (2) Maintains two models of the data: (a) a self-organizing map model (b) a centroid based clustering model.
-  (3) A very efficient stochastic training algorithm based on ideas from tensor algebra.
+Description: Kohonen's self-organizing maps with a number of distinguishing features:
+    (1) A very efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra.  Up to 60x faster than traditional single-threaded training algorithms. No special accelerator hardware required.
+    (2) Automatic centroid detection and visualization using starbursts.
+    (3) Two models of the data: (a) a self-organizing map model, (b) a centroid based clustering model.
+    (4) A number of easily accessible quality metrics for the self-organizing map and the centroid based cluster model.
 License: GPL
 URL: https://github.com/lutzhamel/popsom

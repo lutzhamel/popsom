@@ -4,14 +4,14 @@
 
 /* .Fortran calls */
 extern void F77_NAME(vsom)(float *neurons,
-                                                           const float *dt,
-                                                           const int *dtrows,
-                                                           const int *dtcols,
-                                                           const int *xdim,
-                                                           const int *ydim,
-                                                           const float *alpha,
-                                                           const int *train,
-                                                           const int *seed);
+                           const float *dt,
+                           const int *dtrows,
+                           const int *dtcols,
+                           const int *xdim,
+                           const int *ydim,
+                           const float *alpha,
+                           const int *train,
+                           const int *seed);
 
 static const R_FortranMethodDef FortranEntries[] = {
     {"vsom", (DL_FUNC) &F77_NAME(vsom), 9},

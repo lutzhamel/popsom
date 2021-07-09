@@ -1,21 +1,21 @@
-# Popsom (Version 5.0)
+# Popsom
+### A Very Efficient Implementation of Kohonen's Self-Organizing Maps (SOMs) with Starburst Visualizations
+
 ![](https://raw.githubusercontent.com/lutzhamel/popsom/master/map.png)
 
-Popsom is a R package for the creation and evaluation of self-organizing maps (SOMs).  Popsom version 5.0 supports the following features:
-- Support for two models:
-  1. A self-organizing map model
-  2. A centroid based clustering model
-- Quality measures available for both models
-- Streamlined S3 based API
-  - Easy access to the most important map and centroid data structures
-- Powerful map visualization with centroid identification
-- Extremely fast training algorithm based on ideas from tensor algebra
+POPSOM is a package implementing Kohonen's self-organizing maps with a number of
+distinguishing features:
+1. A very efficient, single threaded, stochastic training algorithm
+based on ideas from tensor algebra.  Up to 60x faster than traditional single-threaded
+training algorithms. No special accelerator hardware required.
+
+2. Automatic centroid detection and visualization using starbursts.
+
+3.  Maintains two models of the data: (a) a self-organizing map model, (b) a centroid based clustering model.
+
+4.  Provides a number of easily accessible quality metrics for the self-organizing map and
+the centroid based cluster model.
 
 For an example usage case check [here](https://www.kaggle.com/lutzhamel/customer-segmentation-with-soms).
 
 For the Popsom description as part of CRAN check [here](https://CRAN.R-project.org/package=popsom).
-
-# Popsom (Version 5.1)
-
-- Something got rattled with the S3 interface in R 4.x.  It no longer works the way it did in release 3.x.  Therefore, I took the S3 interface out because I want the package to work with both 3.x and 4.x installations.  Furthermore, the advantages of the S3 interface are incremental at best and I don't feel like debugging R internals.
-- Implemented a 'summary' function for map objects.
