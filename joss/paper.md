@@ -24,7 +24,7 @@ network designed for unsupervised learning.  What makes the self-organizing map 
 underpinnings and the straightforward visualization of computational
 results [@ultsch1990self]. Self-organizing maps have been applied in virtually every scientific discipline where some sort of data exploration or analysis is
 necessary, e.g., [@liakos2018machine; @mathys2019single; @matic2018interpreting;
-@miller1996star].  A number of R-packages exits that implement self-organizing maps including
+@miller1996star].  A number of R-packages exist that implement self-organizing maps including
 [@kohonen2018jss] and [@som2016R].
 
 
