@@ -35,7 +35,7 @@ we introduce an R-package called `popsom` [@popsom2021R] that implements a train
 for self-organizing maps based on vector and matrix operations inspired by
 tensor algebra [@hamel2018vsom].  We have measured speed ups of the training phase
 of a SOM  of up to 60 times using our implementation over traditional implementations of the training algorithm such as
-[@som2021R].  This speedup enables researchers to look at much larger data sets or to improve
+[@som2016R].  This speedup enables researchers to look at much larger data sets or to improve
 their throughput with a given data size.
 
 Visualization of a trained map is at the core of using self-organizing maps.  The
@@ -64,8 +64,8 @@ the user for analysis, and (b) a centroid based clustering model similar to a k-
 model where centroid and cluster information is available to the user.  Having these
 two perspectives of a dataset is often helpful during a data analysis.
 
-4. A number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 means a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
-in a model. This is computed by the formula $1 - wcss/bcss$.  In general, a value close to 1 means well separated clusters.
+4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
+in a model. This is computed by the formula $1 - wcss/bcss$.  In general, a value close to 1 here means well separated clusters.
 
 # Usage
 
@@ -113,8 +113,10 @@ in \autoref{fig:map}.  A more involved usage example can be found on
 
 # Acknowledgements
 
-Many thanks to the people who have contributed to this project. A special thanks to the
-following in no particular order: Benjamin Ott, Gregory Breard,  Robert Tatoian,
+We would like to thank the University of Rhode Island for financial support of
+this project through their 'Project Completion Grants.' A special thanks to the
+following people for their contributions to the project
+in no particular order: Benjamin Ott, Gregory Breard,  Robert Tatoian,
 Michael Eiger, and Vishakh Gopu.
 
 # References
