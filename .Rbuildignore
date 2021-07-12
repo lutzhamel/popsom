@@ -7,3 +7,4 @@ src/.*\.so
 map\.png
 README\.md
 BUILD_RELEASE\.md
+joss/.*\..*
