@@ -95,8 +95,8 @@ it has to offer,
 > summary(m)
 
 Training Parameters:
-  xdim ydim alpha train normalize seed instances
-    15   10   0.3 10000      TRUE NULL       150
+  xdim ydim alpha  train normalize seed instances
+    15   10   0.3 100000      TRUE NULL       150
 
 Quality Assessments:
   convergence separation clusters
