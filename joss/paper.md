@@ -45,7 +45,7 @@ highlight cluster structures [@hamel2011improved].
 
 # Description
 
-At a slightly more detailed level our `popsom` package implements
+At a slightly more detailed level, our `popsom` package implements
 Kohonen's self-organizing maps with a number of distinguishing features:
 
 1. A very efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra.  Up to 60x faster than traditional single-threaded training algorithms. No special accelerator hardware is required.  The speedup results from the fact that the
@@ -64,7 +64,7 @@ the user for analysis, and (b) a centroid based clustering model similar to a k-
 model where centroid and cluster information is available to the user.  Having these
 two perspectives of a dataset is often helpful during a data analysis.
 
-4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
+4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
 in a model. This is computed by the formula $1 - wcss/bcss$.  In general, a value close to 1 here means well separated clusters.
 
 # Usage
@@ -75,7 +75,7 @@ in a model. This is computed by the formula $1 - wcss/bcss$.  In general, a valu
 > library(popsom)
 ```
 Binary packages for `popsom` are available from CRAN for macOS, Linux, and Windows.  If you are on a system
-that is not supported by CRAN you can download and compile the package from
+that is not supported by CRAN, you can download and compile the package from
 [GitHub](https://github.com/lutzhamel/popsom).
 
 The following is a simple use-case for `popsom` exercising some of the functionality
