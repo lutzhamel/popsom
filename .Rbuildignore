@@ -8,3 +8,5 @@ map\.png
 README\.md
 BUILD_RELEASE\.md
 joss/.*\..*
+CONTRIBUTING\.md
+LICENSE
