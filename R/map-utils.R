@@ -15,31 +15,32 @@
 # position ------ return the position of points on the map
 # significance -- graphically reports the significance of each feature with
 #                 respect to the self-organizing map model
-# marginal ------ displays a density plot of a training dataframe dimension overlayed
-#                 with the neuron density for that same dimension or index.
+# marginal ------ displays a density plot of a training dataframe dimension
+#                 overlayed with the neuron density for that same dimension or
+#                 index.
 #
 ### License
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 #  A copy of the GNU General Public License is available at
 #  http://www.r-project.org/Licenses/
 #
 ### Helpful docs
-# https://medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
-# https://en.wikipedia.org/wiki/Total_sum_of_squares
+# medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
+# en.wikipedia.org/wiki/Total_sum_of_squares
 ###
 
-# load libraries
-require(fields)
-require(graphics)
-require(ggplot2)
-require(hash)
+# load libraries -- avoid changing the search path
+loadNamespace("fields")
+loadNamespace("graphics")
+loadNamespace("ggplot2")
+loadNamespace("hash")
 
 ### constructor ###
 
@@ -238,7 +239,8 @@ starburst <- function(map)
 # parameters:
 # - map is an object if type 'map'
 # - graphics is a switch that controls whether a plot is generated or not
-# - feature.labels is a switch to allow the plotting of feature names vs feature indices
+# - feature.labels is a switch to allow the plotting of feature names vs
+#   feature indices
 # return value:
 # - a vector containing the significance for each feature
 significance <- function(map,graphics=TRUE,feature.labels=TRUE)
@@ -253,7 +255,7 @@ significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 	var.v <- array(data=1,dim=nfeatures)
 	for (i in 1:nfeatures)
     {
-		var.v[i] <- var(data.df[[i]]);
+		var.v[i] <- var(data.df[[i]])
     }
 
 	# we use the variance of a feature as likelihood of
@@ -295,7 +297,8 @@ significance <- function(map,graphics=TRUE,feature.labels=TRUE)
 	}
 }
 
-# marginal - plot that shows the marginal probability distribution of the neurons and data
+# marginal - plot that shows the marginal probability distribution of the
+#            neurons and data
 # parameters:
 # - map is an object of type 'map'
 # - marginal is the name of a training data frame dimension or index
@@ -315,7 +318,9 @@ marginal <- function(map,marginal)
     neurons$legend <- 'neurons'
 
     hist <- rbind(train,neurons)
-    ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(names(map$data)[marginal])
+    ggplot(hist, aes(points, fill = legend)) +
+         geom_density(alpha = 0.2) +
+         xlab(names(map$data)[marginal])
   }
   else if (marginal %in% names(map$data))
   {
@@ -329,11 +334,13 @@ marginal <- function(map,marginal)
     neurons$legend <- 'neurons'
 
     hist <- rbind(train,neurons)
-    ggplot(hist, aes(points, fill = legend)) + geom_density(alpha = 0.2) + xlab(marginal)
+    ggplot(hist, aes(points, fill = legend)) +
+         geom_density(alpha = 0.2) +
+         xlab(marginal)
   }
   else
   {
-    stop("marginal.map: second argument is not the name of a training data dimension or index")
+    stop("marginal.map: second argument is not a data dimension or index")
   }
 }
 
@@ -514,9 +521,10 @@ compute.centroid.obs <- function (map)
 # parameters:
 # - map is an object if type 'map'
 # - conf.int is the confidence interval of the quality assessment (default 95%)
-# - k is the number of samples used for the estimated topographic accuracy computation
-# - verb if true reports the two convergence components separately, otherwise it will
-#        report the linear combination of the two
+# - k is the number of samples used for the estimated topographic accuracy
+#   computation
+# - verb if true reports the two convergence components separately, otherwise
+#   it will report the linear combination of the two
 # - ks is a switch, true for ks-test, false for standard var and means test
 #
 # - return value is the convergence index
@@ -537,7 +545,7 @@ map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
 
 # compute.wcss -- compute the average within cluster sum of squares
 # see here:
-# https://medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
+# medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
 compute.wcss <- function (map)
 {
   # for each cluster gather all the point vectors that belong to that
@@ -566,7 +574,7 @@ compute.wcss <- function (map)
 
 # compute.bcss -- compute the average between cluster sum of squares
 # see here:
-# https://medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
+# medium.com/@ODSC/unsupervised-learning-evaluating-clusters-bd47eed175ce
 compute.bcss <- function (map)
 {
   all.bc.ss <- c()
@@ -593,7 +601,8 @@ compute.bcss <- function (map)
     compute.vectors <- rbind(c.vector,cluster.vectors)
     bc.distances <- as.matrix(dist(compute.vectors))[1,]
     bc.distances.sqd <- sapply(bc.distances,function(x){x*x})
-    bc.ss <- sum(bc.distances.sqd)/(length(bc.distances.sqd)-2) # cluster.ix appears twice
+    # Note: cluster.ix appears twice
+    bc.ss <- sum(bc.distances.sqd)/(length(bc.distances.sqd)-2)
     all.bc.ss <- c(all.bc.ss,bc.ss)
   }
 
@@ -648,7 +657,8 @@ map.fitted.obs <- function(map)
 # - conf.int is the confidence interval of the accuracy test (default 95%)
 # - verb is switch that governs the return value, false: single accuracy value
 #   is returned, true: a vector of individual feature accuracies is returned.
-# - interval is a switch that controls whether the confidence interval is computed.
+# - interval is a switch that controls whether the confidence interval
+#   is computed.
 #
 # - return value is the estimated topographic accuracy
 map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
@@ -671,7 +681,10 @@ map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
   acc.v <- c()
   for (i in 1:k)
   {
-      acc.v <- c(acc.v,accuracy(map,data.df[data.sample.ix[i],],data.sample.ix[i]))
+      acc.v <- c(acc.v,
+                 accuracy(map,
+                          data.df[data.sample.ix[i],],
+                          data.sample.ix[i]))
   }
 
   # compute the confidence interval values using the bootstrap
@@ -715,15 +728,14 @@ map.embed.vm <- function(map,conf.int=.95,verb=FALSE)
     # do the t-test on a pair of datasets: code vectors/training data
     ml <- df.mean.test(map.df,data.df,conf=conf.int)
 
-    # compute the variance captured by the map -- but only if the means have converged as well.
+    # compute the variance captured by the map -- but only if the
+    # means have converged as well.
     nfeatures <- ncol(map.df)
     prob.v <- significance(map,graphics=FALSE)
     var.sum <- 0
 
     for (i in 1:nfeatures)
     {
-        #cat("Feature",i,"variance:\t",vl$ratio[i],"\t(",vl$conf.int.lo[i],"-",vl$conf.int.hi[i],")\n")
-        #cat("Feature",i,"mean:\t",ml$diff[i],"\t(",ml$conf.int.lo[i],"-",ml$conf.int.hi[i],")\n")
         if (vl$conf.int.lo[i] <= 1.0
             && vl$conf.int.hi[i] >= 1.0
             &&  ml$conf.int.lo[i] <= 0.0
@@ -762,11 +774,11 @@ map.embed.ks <- function(map,conf.int=.95,verb=FALSE)
 
   nfeatures <- ncol(map.df)
 
-  # use the Kolmogorov-Smirnov Test to test whether the neurons and training data appear
-  # to come from the same distribution
+  # use the Kolmogorov-Smirnov Test to test whether the neurons and
+  # training data appear to come from the same distribution
   ks.vector <- NULL
   for(i in 1:nfeatures){
-      # Note rpt - I needed to use suppress warnings to suppress the warning about ties.
+      # suppress the warning about ties.
       ks.vector[[i]] <- suppressWarnings(ks.test(map.df[[i]], data.df[[i]]))
   }
 
@@ -812,7 +824,8 @@ map.normalize <- function (x)
 }
 
 
-# bootstrap -- compute the topographic accuracies for the given confidence interval
+# bootstrap -- compute the topographic accuracies for the given
+#              confidence interval
 bootstrap <- function(map,conf.int,data.df,k,sample.acc.v)
 {
   ix <- as.integer(100 - conf.int*100)
@@ -839,7 +852,10 @@ bootstrap <- function(map,conf.int,data.df,k,sample.acc.v)
 best.match <- function(map,obs,full=FALSE)
 {
   # NOTE: replicate obs so that there are nr rows of obs
-  obs.m <- matrix(as.numeric(obs),nrow(map$neurons),ncol(map$neurons),byrow=TRUE)
+  obs.m <- matrix(as.numeric(obs),
+                  nrow(map$neurons),
+                  ncol(map$neurons),
+                  byrow=TRUE)
   diff <- map$neurons - obs.m
   squ <- diff * diff
   s <- rowSums(squ)
@@ -852,8 +868,9 @@ best.match <- function(map,obs,full=FALSE)
     o[1]
 }
 
-# accuracy -- the topographic accuracy of a single sample is 1 is the best matching unit
-#             and the second best matching unit are are neighbors otherwise it is 0
+# accuracy -- the topographic accuracy of a single sample is 1 is the best
+#             matching unit and the second best matching unit are are neighbors
+#             otherwise it is 0
 accuracy <- function(map,sample,data.ix)
 {
     # compute the euclidean distances of the sample from the neurons
@@ -937,8 +954,9 @@ map.graphics.reset <- function(par.vector)
 	par(ps=par.vector$ps)
 }
 
-# plot.heat - plot a heat map based on a 'map', this plot also contains the connected
-#             components of the map based on the landscape of the heat map
+# plot.heat - plot a heat map based on a 'map', this plot also contains the
+#             connected components of the map based on the landscape of the
+#             heat map
 plot.heat <- function(map)
 {
 	x <- map$xdim
@@ -1047,7 +1065,8 @@ compute.centroids <- function(map)
   	# if a minimum value other than our own current value cannot be
   	# found then we are at a minimum.
   	#
-  	# search the neighborhood; three different cases: inner element, corner element, side element
+  	# search the neighborhood; three different cases: inner element,
+    # corner element, side element
     # TODO: there has to be a better way!
 
   	min.val <- heat[ix,iy]
@@ -1367,7 +1386,8 @@ compute.centroids <- function(map)
   centroids
 }
 
-# compute.heat -- compute a heat value map representation of the given distance matrix
+# compute.heat -- compute a heat value map representation of the given
+#                 distance matrix
 # parameters:
 # - map is an object if type 'map'
 # return value:
@@ -1380,7 +1400,7 @@ compute.heat <- function(map)
 	heat <- array(data=0,dim=c(x,y))
 
 	if (x == 1 || y == 1)
-		stop("compute.heat: heat map can not be computed for a map with a dimension of 1")
+		stop("compute.heat: heat map cannot be computed for a map of dimension 1")
 
   # local function as a shorthand for rowix
 	xl <- function(ix,iy)
@@ -1516,8 +1536,11 @@ compute.heat <- function(map)
 		}
 	}
 	xycoords <- data.frame(xcoords,ycoords)
-  heat <- smooth.2d(as.vector(heat),x=as.matrix(xycoords),nrow=x,ncol=y,surface=FALSE,theta=2)
-
+  heat <- smooth.2d(as.vector(heat),
+                    x=as.matrix(xycoords),
+                    nrow=x,ncol=y,
+                    surface=FALSE,
+                    theta=2)
 	heat
 }
 
@@ -1547,7 +1570,9 @@ df.var.test <- function(df1,df2,conf = .95)
 	}
 
 	# return a list with the ratios and conf intervals for each feature
-	list(ratio=var.ratio.v,conf.int.lo=var.confintlo.v,conf.int.hi=var.confinthi.v)
+	list(ratio=var.ratio.v,
+       conf.int.lo=var.confintlo.v,
+       conf.int.hi=var.confinthi.v)
 }
 
 # df.mean.test -- a function that applies the t-test testing the difference
@@ -1575,7 +1600,9 @@ df.mean.test <- function(df1,df2,conf = .95)
 	}
 
 	# return a list with the mean differences and conf intervals for each feature
-	list(diff=mean.diff.v,conf.int.lo=mean.confintlo.v,conf.int.hi=mean.confinthi.v)
+	list(diff=mean.diff.v,
+       conf.int.lo=mean.confintlo.v,
+       conf.int.hi=mean.confinthi.v)
 }
 
 
@@ -1613,13 +1640,13 @@ vsom.f <- function(data,xdim,ydim,alpha,train,seed)
                        as.integer(ydim),
                        as.single(alpha),
                        as.integer(train),
-#                       as.integer(seed))
                        as.integer(seed),
                        PACKAGE="popsom")
 
     # unpack the structure and list in result[1]
     v <- result[1]
-    neurons <- matrix(v[[1]],nrow=nr,ncol=nc,byrow=FALSE)  # rearrange the result vector as matrix
+    # rearrange the result vector as matrix
+    neurons <- matrix(v[[1]],nrow=nr,ncol=nc,byrow=FALSE)
 
     neurons
 }
