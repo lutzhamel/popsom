@@ -37,10 +37,10 @@
 ###
 
 # load libraries
-library(fields)
-library(graphics)
-library(ggplot2)
-library(hash)
+loadNamespace("fields")
+loadNamespace("graphics")
+loadNamespace("ggplot2")
+loadNamespace("hash")
 
 ### constructor ###
 
