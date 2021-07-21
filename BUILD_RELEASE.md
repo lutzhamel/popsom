@@ -14,9 +14,9 @@ If you don't have a copy of the popsom repo clone it:
 
 In order to build a release do the following:
 
- 1. Go to the folder just above the local popsom repo and do:
+ 1. Go to the folder just above the `package` folder:
 	```
-	$ R CMD build popsom
+	$ R CMD build package
 	$ R CMD check --as-cran popsom_xyz.tar.gz
 	```
 	where `xyz` is the version number given in the DESCRIPTION file.  This builds a folder called `popsom.Rcheck`.
@@ -34,7 +34,9 @@ a valid package. It can be loaded into R as follows:
 1. Set the working directory of the R terminal to the location of vsom.so
 1. Load `vsom.so` as a dynamic object using dyn.load()
 1.  Verify that the dynamic loadable object is loaded using `is.loaded()`
-1.  Load `map-utils.R` using `source()`
+1.  Load `map-utils.R` using `source()`. You will probably have to do
+    some manual adjustments to the R code to load it outside of a package
+    context.
 
 Briefly:
 
