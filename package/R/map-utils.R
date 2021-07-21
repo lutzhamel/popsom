@@ -36,11 +36,11 @@
 # en.wikipedia.org/wiki/Total_sum_of_squares
 ###
 
-# load libraries -- avoid changing the search path
-loadNamespace("fields")
-loadNamespace("graphics")
-loadNamespace("ggplot2")
-loadNamespace("hash")
+# load libraries
+library(fields)
+library(graphics)
+library(ggplot2)
+library(hash)
 
 ### constructor ###
 
