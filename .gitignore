@@ -1,0 +1,6 @@
+*~
+popsom_*.tar.gz
+popsom.Rcheck
+Rplots.pdf
+*.o
+*.so
