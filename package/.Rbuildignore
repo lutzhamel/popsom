@@ -4,9 +4,3 @@ R/\.RData
 src/\.RData
 src/.*\.o
 src/.*\.so
-map\.png
-README\.md
-BUILD_RELEASE\.md
-joss/.*\..*
-CONTRIBUTING\.md
-LICENSE
