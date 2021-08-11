@@ -65,7 +65,7 @@ model where centroid and cluster information is available to the user.  Having t
 two perspectives of a dataset is often helpful during a data analysis.
 
 4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
-in a model. This is computed by the formula $1 - wcss/bcss$.  In general, a value close to 1 here means well separated clusters.
+in a model.  In general, a value close to 1 means well separated clusters.
 
 # Usage
 
@@ -132,8 +132,8 @@ We can look at details of the centroids of the model,
 >
 ```
 The map model maintains information about the centroids which we can access.  Here
-we access that inforation in order to print out the coordinates of the centroids on the map
-together with their assigned labels.  We can easily vverify this information using
+we access that information in order to print out the coordinates of the centroids on the map
+together with their assigned labels.  We can easily verify this information using
 the starburst plots the package provides,
 ```
 > ## display a starburst plot of the map model
