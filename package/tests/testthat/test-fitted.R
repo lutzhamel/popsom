@@ -1,9 +1,9 @@
-test_that("fitted function works", {
+test_that("map.fitted function works", {
   data(iris)
   df<-subset(iris,select=-Species)
   labels<-subset(iris,select=Species)
-  m<-map(df,labels,seed=42)
-  v<-fitted(m)
+  m<-map.build(df,labels,seed=42)
+  v<-map.fitted(m)
 
   # note: we cannot test for specific values because
   # different random number generators/OSs will generate

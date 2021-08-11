@@ -1,4 +1,4 @@
----
+---A
 title: 'popsom: A Very Efficient Implementation of Self-Organizing Maps with Starburst Visualizations for R'
 tags:
   - R
@@ -79,7 +79,7 @@ that is not supported by CRAN, you can download and compile the package from
 [GitHub](https://github.com/lutzhamel/popsom).
 
 The following is a simple use-case for `popsom` exercising some of the functionality
-it has to offer,
+it has to offer. We start by constructing a model,
 ```
 > ## load a data set
 > data(iris)
@@ -89,27 +89,84 @@ it has to offer,
 > labels <- subset(iris,select=Species)
 >
 > ## build a self-organizing map
-> m <- map(df,labels,xdim=15,ydim=10,train=100000)
+> m <- map.build(df,labels,xdim=15,ydim=10,train=100000,seed=42)
 >
 > ## compute a summary and display it
-> summary(m)
+> map.summary(m)
 
 Training Parameters:
-  xdim ydim alpha  train normalize seed instances
-    15   10   0.3 100000      TRUE NULL       150
+  xdim ydim alpha train normalize seed instances
+    15   10   0.3 1e+05     FALSE   42       150
 
 Quality Assessments:
   convergence separation clusters
-         0.99       0.98        5
+         0.94       0.93        4
+
 >
-> ## display a starburst plot of the map model
-> starburst(m)
 ```
-The last line of the R script generates the starburst visualization shown
-in \autoref{fig:map}.  A more involved usage example can be found on
+The `map.summary` function gives us a quick snapshot of relevant model information. Perhaps
+the most interesting thing here are the `Quality Assessments`. The `convergence` value is a linear
+combination of the estimated topographic accuracy and the embedding accuracy.  The latter roughly
+corresponds to the amount of training data variance the map models [@hamel2016som].  Convergence values of 0.8 and
+better are considered hallmarks of high quality maps.  The `separation` value is computed with the
+formula,
+```
+1 - wcss/bcss
+```
+where `wcss` is the average within cluster sum of squares and `bcss` is the average between cluster sum
+of squares.  This computation is a quick way of assessing
+the quality of the computed clusters.  Here, a value close
+to one usually indicates a good cluster model.
+
+We can look at details of the centroids of the model,
+```
+> ## look at the centroids of the model
+> lc <- m$unique.centroids
+> ll <- m$centroid.labels
+> for (i in 1:length(lc)) 
++ cat("(",lc[[i]]$x,",",lc[[i]]$y,") -> ",ll[[lc[[i]]$x,lc[[i]]$y]],"\n")
+( 4 , 1 ) ->  versicolor 
+( 1 , 4 ) ->  virginica 
+( 9 , 1 ) ->  versicolor 
+( 15 , 10 ) ->  setosa 
+>
+```
+The map model maintains information about the centroids which we can access.  Here
+we access that inforation in order to print out the coordinates of the centroids on the map
+together with their assigned labels.  We can easily vverify this information using
+the starburst plots the package provides,
+```
+> ## display a starburst plot of the map model
+> map.starburst(m)
+```
+The starburst visualization shown
+in \autoref{fig:map}.  The centroids we extracted from the model earlier are easily
+identified on this visualization.  The starbursts indicate the extend of clusters around
+each centroid and the colors of the heatmap indicate the "tightness" of the clusters.
+Hot, yellow usually indicated tight clusters whereas reddish colors indicate looser clusters or
+borders of clusters.  Here we can see that the "versicolor" and "virginica" clusters are more similar
+to each other and that the "setosa" cluster is separated from the other clusters by some
+distance. This is easily verified with a scatter plot matrix of the iris dataset using
+```
+> colors <- c("#00AFBB", "#E7B800", "#FC4E07")  
+> pairs(iris[,1:4], pch = 19,  cex = 0.5,
++       col = colors[iris$Species])
+>
+```
+and shown in \autoref{fig:scatter}.  The blue cluster is the "setosa" cluster and it is easy to see that
+it is well separated from the other clusters.
+
+A more involved usage example can be found on
 [Kaggle](https://www.kaggle.com/lutzhamel/self-organizing-maps-in-customer-segmentation).
 
 ![Starburst visualization of a self-organizing map.\label{fig:map}](map.png)
+
+![Scatterplot matrix of the iris dataset.\label{fig:scatter}](scatter.png)
+
+# Performance
+
+In order to highlight the kind of performance gains you can expect from using our package we
+provide a simple benchmark script in our repository
 
 # Acknowledgements
 
@@ -117,6 +174,7 @@ We would like to thank the University of Rhode Island for financial support of
 this project through their 'Project Completion Grants.' A special thanks to the
 following people for their contributions to the project
 in no particular order: Benjamin Ott, Gregory Breard,  Robert Tatoian,
-Michael Eiger, and Vishakh Gopu.
+Michael Eiger, and Vishakh Gopu.  We also would like to thank sthda.com for their
+[wiki on scatterplots](http://www.sthda.com/english/wiki/scatter-plot-matrices-r-base-graphs).
 
 # References

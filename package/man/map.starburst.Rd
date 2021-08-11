@@ -1,9 +1,9 @@
-\name{starburst}
-\alias{starburst}
+\name{map.starburst}
+\alias{map.starburst}
 \title{Generate Starburst For Map}
 
 \usage{
-starburst(map)
+map.starburst(map)
 }
 \arguments{
   \item{map}{An object of type 'map'}
@@ -27,7 +27,7 @@ data(iris)
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
-m <- map(df,labels,xdim=15,ydim=10,train=100000)
+m <- map.build(df,labels,xdim=15,ydim=10,train=100000)
 
-starburst(m)
+map.starburst(m)
 }

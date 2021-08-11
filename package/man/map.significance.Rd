@@ -1,9 +1,9 @@
-\name{significance}
-\alias{significance}
-\title{Compute Significance Of Features}
+\name{map.significance}
+\alias{map.significance}
+\title{Compute Significance of Features}
 \description{Computes the relative significance of each feature and plots it.}
 \usage{
-significance(map,graphics=TRUE,feature.labels=TRUE)
+map.significance(map,graphics=TRUE,feature.labels=TRUE)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -11,6 +11,7 @@ significance(map,graphics=TRUE,feature.labels=TRUE)
   \item{feature.labels}{A switch to allow the plotting of feature names vs feature indices.}
 }
 \value{If graphics=FALSE a vector containing the significance for each feature is returned.}
+
 \note{We use a Bayesian approach to compute the relative significance of features based on
 variance.}
 
@@ -25,13 +26,13 @@ data(iris)
 df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
-m <- map(df,labels,xdim=15,ydim=10,train=10000)
+m <- map.build(df,labels,xdim=15,ydim=10,train=10000)
 
 ## show the relative feature significance for each feature
-df <- data.frame(names(df),significance(m,graphics=FALSE))
+df <- data.frame(names(df),map.significance(m,graphics=FALSE))
 names(df) <- c("Features","Significance")
 df
 
 ## display the relative feature significance graphically
-significance(m)
+map.significance(m)
 }

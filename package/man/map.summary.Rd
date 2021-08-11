@@ -1,9 +1,9 @@
-\name{summary}
-\alias{summary}
+\name{map.summary}
+\alias{map.summary}
 \title{Summary Object for Map}
 \description{Generate a summary object for 'map' objects.}
 \usage{
-summary(map,verb=TRUE)
+map.summary(map,verb=TRUE)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -38,9 +38,9 @@ df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
 ## build a map
-m <- map(df,labels,xdim=15,ydim=10,train=10000)
+m <- map.build(df,labels,xdim=15,ydim=10,train=10000)
 
 ## compute a summary object and display it
-s <- summary(m,verb=FALSE)
+s <- map.summary(m,verb=FALSE)
 s
 }

@@ -1,9 +1,9 @@
-test_that("predict function works", {
+test_that("map.significance function works", {
   data(iris)
   df<-subset(iris,select=-Species)
   labels<-subset(iris,select=Species)
-  m<-map(df,labels,seed=42)
-  s<-significance(m,graphics=FALSE)
+  m<-map.build(df,labels,seed=42)
+  s<-map.significance(m,graphics=FALSE)
 
   # spot check the significance vector for most
   # significant feature

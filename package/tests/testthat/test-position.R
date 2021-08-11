@@ -1,9 +1,9 @@
-test_that("position function works", {
+test_that("map.position function works", {
   data(iris)
   df<-subset(iris,select=-Species)
   labels<-subset(iris,select=Species)
-  m<-map(df,labels,seed=42)
-  p<-position(m,df)
+  m<-map.build(df,labels,seed=42)
+  p<-map.position(m,df)
   # print(p)
 
   # note: we cannot test for specific values because

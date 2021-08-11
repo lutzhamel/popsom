@@ -1,9 +1,9 @@
-\name{marginal}
-\alias{marginal}
+\name{map.marginal}
+\alias{map.marginal}
 \title{Plot Marginal Distribution}
 \description{Generate a plot that shows the marginal probability distribution of the neurons and data.}
 \usage{
-marginal(map,marginal)
+map.marginal(map,marginal)
 }
 \arguments{
   \item{map}{An object of type 'map'.}
@@ -19,8 +19,8 @@ df <- subset(iris,select=-Species)
 labels <- subset(iris,select=Species)
 
 ## build a map
-m <- map(df,labels,xdim=15,ydim=10,train=10000)
+m <- map.build(df,labels,xdim=15,ydim=10,train=10000)
 
 ## display marginal distribution of dimension 1
-marginal(m,1)
+map.marginal(m,1)
 }

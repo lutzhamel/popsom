@@ -1,9 +1,9 @@
-test_that("predict function works", {
+test_that("map.predict function works", {
   data(iris)
   df<-subset(iris,select=-Species)
   labels<-subset(iris,select=Species)
-  m<-map(df,labels,seed=42)
-  p<-predict(m,df)
+  m<-map.build(df,labels,seed=42)
+  p<-map.predict(m,df)
   # print(p)
 
   # spot check the prediction vector for high
