@@ -1,4 +1,4 @@
----A
+---
 title: 'popsom: A Very Efficient Implementation of Self-Organizing Maps with Starburst Visualizations for R'
 tags:
   - R
@@ -123,12 +123,12 @@ We can look at details of the centroids of the model,
 > ## look at the centroids of the model
 > lc <- m$unique.centroids
 > ll <- m$centroid.labels
-> for (i in 1:length(lc)) 
+> for (i in 1:length(lc))
 + cat("(",lc[[i]]$x,",",lc[[i]]$y,") -> ",ll[[lc[[i]]$x,lc[[i]]$y]],"\n")
-( 4 , 1 ) ->  versicolor 
-( 1 , 4 ) ->  virginica 
-( 9 , 1 ) ->  versicolor 
-( 15 , 10 ) ->  setosa 
+( 4 , 1 ) ->  versicolor
+( 1 , 4 ) ->  virginica
+( 9 , 1 ) ->  versicolor
+( 15 , 10 ) ->  setosa
 >
 ```
 The map model maintains information about the centroids which we can access.  Here
