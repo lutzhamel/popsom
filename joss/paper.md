@@ -166,7 +166,35 @@ A more involved usage example can be found on
 # Performance
 
 In order to highlight the kind of performance gains you can expect from using our package we
-provide a simple benchmark script in our repository
+provide a simple
+[benchmark script](https://github.com/lutzhamel/popsom/blob/master/package/performance/popsom-perf.r)
+in our repository.
+The script uses two real world datasets and one synthetic dataset.
+The output of the script is (slightly edited for readability),
+```
+[1] "times are reported in milliseconds"
+
+[1] "### Iris ###"
+  package   mean time
+1  popsom         1.7
+2     som        17.2
+3 kohonen       128.6
+
+[1] "### Wines ###"
+  package   mean time
+1  popsom         3.2
+2     som        21.8
+3 kohonen       281.0
+
+[1] "### Sim ###"
+  package   mean time
+1  popsom         2.8
+2     som        33.9
+3 kohonen      1975.9
+```
+This output shows that `popsom` is about an order of magnitude
+faster than `som` and almost two orders of magnitude faster than the `kohonen` package. A
+more detailed performance analysis of the `popsom` package appears in [@hamel2018vsom].
 
 # Acknowledgements
 
