@@ -194,7 +194,7 @@ The output of the script run on an Intel Linux machine is (slightly edited for r
 ```
 This output shows that our `popsom` package is about an order of magnitude
 faster than the `som` package [@som2016R] and almost two orders of magnitude faster than the `kohonen` package [@kohonen2018jss]. A
-more detailed performance analysis of the `popsom` package appears in [@hamel2018vsom].
+more detailed performance analysis of our `popsom` package appears in [@hamel2018vsom].
 
 # Acknowledgements
 
