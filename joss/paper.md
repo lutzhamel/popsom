@@ -166,7 +166,7 @@ A more involved usage example can be found on
 # Performance
 
 In order to highlight the kind of performance gains our package typically provides we
-provide a simple
+included a simple
 [benchmark script](https://github.com/lutzhamel/popsom/blob/master/package/performance/popsom-perf.r)
 in our repository.
 The script uses two real world datasets and one synthetic dataset.
