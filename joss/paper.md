@@ -143,7 +143,7 @@ The starburst visualization shown
 in \autoref{fig:map}.  The centroids we extracted from the model earlier are easily
 identified on this visualization.  The starbursts indicate the extend of clusters around
 each centroid and the colors of the heatmap indicate the "tightness" of the clusters.
-Hot, yellow usually indicated tight clusters whereas reddish colors indicate looser clusters or
+Hot, yellow usually indicates tight clusters whereas reddish colors indicate looser clusters or
 borders of clusters.  Here we can see that the "versicolor" and "virginica" clusters are more similar
 to each other and that the "setosa" cluster is separated from the other clusters by some
 distance. This is easily verified with a scatter plot matrix of the iris dataset using
