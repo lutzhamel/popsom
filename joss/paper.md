@@ -170,7 +170,7 @@ included a simple
 [benchmark script](https://github.com/lutzhamel/popsom/blob/master/package/performance/popsom-perf.r)
 in our repository.
 The script uses two real world datasets and one synthetic dataset.
-The output of the script is (slightly edited for readability),
+The output of the script run on an Intel Linux machine is (slightly edited for readability),
 ```
 [1] "times are reported in milliseconds"
 
