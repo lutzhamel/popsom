@@ -64,8 +64,8 @@ the user for analysis, and (b) a centroid based clustering model similar to a k-
 model where centroid and cluster information is available to the user.  Having these
 two perspectives of a dataset is often helpful during a data analysis.
 
-4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to 1 of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
-in a model.  In general, a value close to 1 means well separated clusters.
+4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to one of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
+in a model.  In general, a value close to one indicates well separated clusters.
 
 # Usage
 
@@ -165,7 +165,7 @@ A more involved usage example can be found on
 
 # Performance
 
-In order to highlight the kind of performance gains you can expect from using our package we
+In order to highlight the kind of performance gains our package typically provides we
 provide a simple
 [benchmark script](https://github.com/lutzhamel/popsom/blob/master/package/performance/popsom-perf.r)
 in our repository.
