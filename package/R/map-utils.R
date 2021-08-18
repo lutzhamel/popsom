@@ -68,7 +68,7 @@ map.build <- function(data,
 {
   if (alpha <= 0 || alpha > 1)
     stop("invalid value for alpha")
-    
+
   if (xdim < 5 || ydim < 5)
     stop("map is too small.")
 
@@ -194,14 +194,16 @@ map.summary <- function(map, verb=TRUE)
               "train",
               "normalize",
               "seed",
-              "instances")
+              "instances",
+              "columns")
   v <- c(map$xdim,
          map$ydim,
          map$alpha,
          map$train,
          if (map$normalize) "TRUE" else "FALSE",
          if (is.null(map$seed)) "NULL" else map$seed,
-         nrow(map$data))
+         nrow(map$data),
+         ncol(map$data))
   df <- data.frame(t(v))
   names(df) <- header
   row.names(df) <- " "

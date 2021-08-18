@@ -1,5 +1,5 @@
 ---
-title: 'popsom: A Very Efficient Implementation of Self-Organizing Maps with Starburst Visualizations for R'
+title: 'popsom: An Efficient Implementation of Self-Organizing Maps with Starburst Visualizations for R'
 tags:
   - R
   - machine learning
@@ -19,24 +19,26 @@ bibliography: paper.bib
 # Background
 
 The self-organizing map (SOM) was developed by Teuvo Kohonen for data exploration and
-data visualization in the 1980s [@kohonen2001self]. It is an artificial neural
-network designed for unsupervised learning.  What makes the self-organizing map so attractive are the intuitive mathematical
+data visualization in the 1980s [@kohonen2001self]. Specifically, the self-organizing map
+is an unsupervised artificial neural network designed for identifying and visualizing clusters in multi-dimensional
+spaces.  What makes the self-organizing map so attractive are the intuitive mathematical
 underpinnings and the straightforward visualization of computational
-results [@ultsch1990self]. Self-organizing maps have been applied in virtually every scientific discipline where some sort of data exploration or analysis is
+results [@ultsch1990self]. Self-organizing maps have been applied in virtually every
+scientific discipline where some sort of data exploration or analysis is
 necessary, e.g., [@liakos2018machine; @mathys2019single; @matic2018interpreting;
-@miller1996star].  A number of R-packages exist that implement self-organizing maps including
-[@kohonen2018jss] and [@som2016R].
+@miller1996star].  A number of R-packages exist that implement self-organizing maps, e.g.,
+[@kohonen2018jss; @som2016R].
 
 
 # Statement of need
 
 Training a self-organizing map is time consuming. Here
 we introduce an R-package called `popsom` [@popsom2021R] that implements a training algorithm
-for self-organizing maps based on vector and matrix operations inspired by
-tensor algebra [@hamel2018vsom].  We have measured speed ups of the training phase
-of a SOM  of up to 60 times using our implementation over traditional implementations of the training algorithm such as
-[@som2016R].  This speedup enables researchers to look at much larger data sets or to improve
-their throughput with a given data size.
+for self-organizing maps inspired by
+tensor algebra [@hamel2018vsom] which provides significant speedups over
+traditional implementations of the training algorithm such as the `som` package by Yan
+[@som2016R].  These speedups enable researchers to look at much larger datasets or to improve
+their throughput with a dataset of a given size.
 
 Visualization of a trained map is at the core of using self-organizing maps.  The
 `popsom` package improves on the standard u-matrix visualization
@@ -48,7 +50,8 @@ highlight cluster structures [@hamel2011improved].
 At a slightly more detailed level, our `popsom` package implements
 Kohonen's self-organizing maps with a number of distinguishing features:
 
-1. A very efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra.  Up to 60x faster than traditional single-threaded training algorithms. No special accelerator hardware is required.  The speedup results from the fact that the
+1. A very efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra providing significant speedups over traditional single-threaded implementations
+without the need for special accelerator hardware. The speedups result from the fact that the
 vector and matrix structures exposed by our algorithm map neatly into
 vector and matrix operations available on today's CPUs.  Our Fortran 90 implementation
 insures that these vector and matrix operations are mapped onto the hardware as efficiently as
@@ -56,7 +59,7 @@ possible [@hamel2018vsom].
 
 2. Automatic centroid visualization and detection using starbursts [@hamel2011improved]. Not
 only does `popsom` display clusters and centroids on the map using starbursts but it
-also computes a cluster model similar to a k-means model based on the starbursts.  
+also computes a cluster model based on the starbursts.  
 
 3. The `popsom` package maintains two models of the given training data: (a) a
 self-organizing map model where elements of the map model are available to
@@ -65,7 +68,7 @@ model where centroid and cluster information is available to the user.  Having t
 two perspectives of a dataset is often helpful during a data analysis.
 
 4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to one of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
-in a model.  In general, a value close to one indicates well separated clusters.
+in a model.  In general, a value close to one here indicates well separated clusters.
 
 # Usage
 
@@ -81,7 +84,7 @@ that is not supported by CRAN, you can download and compile the package from
 The following is a simple use-case for `popsom` exercising some of the functionality
 it has to offer. We start by constructing a model,
 ```
-> ## load a data set
+> ## load a dataset
 > data(iris)
 >
 > ## set data frame and labels
@@ -95,8 +98,8 @@ it has to offer. We start by constructing a model,
 > map.summary(m)
 
 Training Parameters:
-  xdim ydim alpha train normalize seed instances
-    15   10   0.3 1e+05     FALSE   42       150
+  xdim ydim alpha train normalize seed instances columns
+    15   10   0.3 1e+05     FALSE   42       150       4
 
 Quality Assessments:
   convergence separation clusters
@@ -107,7 +110,7 @@ Quality Assessments:
 The `map.summary` function gives us a quick snapshot of relevant model information. Perhaps
 the most interesting thing here are the `Quality Assessments`. The `convergence` value is a linear
 combination of the estimated topographic accuracy and the embedding accuracy.  The latter roughly
-corresponds to the amount of training data variance the map models [@hamel2016som].  Convergence values of 0.8 and
+corresponds to the amount of training data variance the map models [@hamel2016som].  Convergence values of 0.9 and
 better are considered hallmarks of high quality maps.  The `separation` value is computed with the
 formula,
 ```
@@ -141,7 +144,7 @@ the starburst plots the package provides,
 ```
 The starburst visualization shown
 in \autoref{fig:map}.  The centroids we extracted from the model earlier are easily
-identified on this visualization.  The starbursts indicate the extend of clusters around
+identified on this visualization.  The starbursts indicate the extent of clusters around
 each centroid and the colors of the heatmap indicate the "tightness" of the clusters.
 Hot, yellow usually indicates tight clusters whereas reddish colors indicate looser clusters or
 borders of clusters.  Here we can see that the "versicolor" and "virginica" clusters are more similar
@@ -169,32 +172,142 @@ In order to highlight the kind of performance gains our package typically provid
 included a simple
 [benchmark script](https://github.com/lutzhamel/popsom/blob/master/package/performance/popsom-perf.r)
 in our repository.
-The script uses two real world datasets and one synthetic dataset.
-The output of the script run on an Intel Linux machine is (slightly edited for readability),
+The benchmark compares the training algorithm performances of three packages: (1)  `popsom` [@popsom2021R],
+(2) `som` [@som2016R], and (3) `kohonen` [@kohonen2018jss].
+The script uses three real world datasets and one synthetic dataset.
+We only consider training times of converged maps, that is, we only look at the training times of
+maps that have high topographic accuracy
+and capture most of the variance of the input data. In the terminology of our `popsom` package
+that means we only consider training times of maps with a convergence value of 0.9 or better.
+For the output below,
+the benchmarks were run on an Intel Linux machine and the output was slightly edited for readability.
+The benchmarks are roughly ordered in increasing complexity of the data.  We start with the `iris` dataset.
+
+## The Iris Dataset
+
+The `iris` dataset is available in R. A 15x10 map size and 100000 training iterations are sufficient to consistently produce
+converged maps which the following summary confirms,
 ```
-[1] "times are reported in milliseconds"
+Training Parameters:
+  xdim ydim alpha train normalize seed instances columns
+    15   10   0.3 1e+05     FALSE   42       150       4
 
-[1] "### Iris ###"
-  package   mean time
-1  popsom         1.7
-2     som        17.2
-3 kohonen       128.6
+Quality Assessments:
+  convergence separation clusters
+         0.94       0.93        4
 
-[1] "### Wines ###"
-  package   mean time
-1  popsom         3.2
-2     som        21.8
-3 kohonen       281.0
-
-[1] "### Sim ###"
-  package   mean time
-1  popsom         2.8
-2     som        33.9
-3 kohonen      1975.9
 ```
-This output shows that our `popsom` package is about an order of magnitude
-faster than the `som` package [@som2016R] and almost two orders of magnitude faster than the `kohonen` package [@kohonen2018jss]. A
-more detailed performance analysis of our `popsom` package appears in [@hamel2018vsom].
+This is the simplest dataset in our benchmark with 150 instances and 4 columns.
+Running the benchmarks gives us the following performance data where the time is reported in milliseconds,
+```
+  package        mean time          speedup
+1  popsom           214.96                1
+2     som          4092.20               19
+3 kohonen         23535.20              109
+```
+Here we can see that `popsom` is 19 times faster than `som` and 109 times faster than `kohonen`.
+
+## The Epil Dataset
+
+The `epil` dataset is available in R through the `MASS` package.  Here again, a map size of 15x10 and
+100000 training iterations are sufficient to produce converged maps.  The following is a summary
+of building a converged map,
+```
+Training Parameters:
+  xdim ydim alpha train normalize seed instances columns
+    15   10   0.3 1e+05     FALSE   42       236       8
+
+Quality Assessments:
+  convergence separation clusters
+         0.97       0.83        4
+```
+With 236 instances and 8 columns the dataset is slightly more complex than the `iris` dataset.
+The results from the benchmark are,
+```
+  package        mean time         speedup
+1  popsom           397.73               1
+2     som          4740.05              12
+3 kohonen         23466.17              59
+```
+Times are reported in milliseconds.  Here we can see that `popsom` is about 12 times faster than the `som`
+package and about 60 times faster than the `kohonen` package.
+
+## The Wines Dataset
+
+The `wines` dataset is available through the `kohonen` package. Like in the previous two benchmarks,
+a map size of 15x10 and
+100000 training iterations are sufficient to consistently produce converged maps.  The following is a summary
+of building a converged map,
+```
+Training Parameters:
+  xdim ydim alpha train normalize seed instances columns
+    15   10   0.3 1e+05     FALSE   42       177      13
+
+Quality Assessments:
+  convergence separation clusters
+         0.96       0.93        4
+```
+What distinguishes this dataset from the others is the relative high dimensionality compared to the other
+datasets.  The results for the benchmark are,
+```
+  package        mean time          speedup
+1  popsom           631.33                1
+2     som          5453.73                9
+3 kohonen         23433.91               37
+```
+Times are reported in milliseconds. Here we measure a speedup of 9 compared to the `som` package and a speedup of close to 40 compared
+to the `kohonen` package.
+
+## The Synthetic Dataset
+
+Our script constructs a synthetic dataset containing three clusters embedded in an 10-dimensional space. With
+300 observations it represents our largest and most complex dataset. In order to obtain
+converged maps consistently we had to pick a map size of 25x20 together with 1000000 training iterations.
+The following is a summary of building a map with these parameters,
+```
+Training Parameters:
+  xdim ydim alpha train normalize seed instances columns
+    25   20   0.3 1e+06     FALSE   42       300      10
+
+Quality Assessments:
+  convergence separation clusters
+            1          1        9
+```
+As one would expect from a synthetic dataset without any noise the convergence value
+for this map is one: no topographic errors and full modeling of the underlying variance.
+Even though the summary reports 9 clusters have been found it is easily verified visually through
+the use of the starburst function that those 9 clusters are actually subclusters of three major clusters
+as required by the design of the synthetic data.  The performance summary is,
+```
+  package        mean time          speedup
+1  popsom            15.48                1
+2     som           164.40               10
+3 kohonen          2641.17              170
+```
+Here we can see that `popsom` is about an order of magnitude faster than the `som` package and a little bit
+more than two orders of magnitude faster than the `kohonen` package.
+Times are reported in seconds.
+
+## Observations
+
+With our package one can expect roughly an order of magnitude speedup over
+the `som` package and speedups between one and two orders of magnitude over
+the `kohonen` package for most datasets.  Given that these packages represent typical
+implementations of single-threaded, stochastic training algorithms it is highly likely that
+our speedup numbers also apply to other SOM implementations that implement
+single-threaded, stochastic training of self-organizing maps.
+
+As we saw in the benchmarks above, the exact speedup provided by our package
+depends on the precise constellation of the training data as well as the map size
+and training iterations to provide consistently converged maps.
+Therefore it is difficult to come up with a precise characterization of our speedup
+numbers.  However, it is evident that our algorithm is sensitive to the dimensionality
+of the training data.  But even this characterization is not as straightforward as it
+might seem since higher dimensional data often requires larger maps and more
+training iterations in order to converge giving our algorithm additional opportunities
+for optimization.
+
+A more detailed yet older performance analysis of our `popsom` package appears in [@hamel2018vsom].
 
 # Acknowledgements
 
