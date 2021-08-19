@@ -687,10 +687,8 @@ map.topo <- function(map,k=50,conf.int=.95,verb=FALSE,interval=TRUE)
   data.df <- as.matrix(map$data)
 
   # sample map$data
-  # TODO: think of something clever here rather than just aborting.
-  if (k > nrow(data.df))
-      stop("sample larger than training data.")
-
+  # k samples unless k > nrow(data.df), then
+  k <- min(k,nrow(data.df))
   data.sample.ix <- sample(1:nrow(data.df),size=k,replace=FALSE)
 
   # compute the sum topographic accuracy - the accuracy of a single sample
