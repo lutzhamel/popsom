@@ -4,4 +4,5 @@ R/\.RData
 src/\.RData
 src/.*\.o
 src/.*\.so
-performance/.*
+#performance/.*
+performance
