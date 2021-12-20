@@ -41,7 +41,7 @@ traditional implementations of the training algorithm such as the `som` package 
 their throughput with a dataset of a given size.
 
 Visualization of a trained map is at the core of using self-organizing maps.  The
-`popsom` package improves on the standard u-matrix visualization
+`popsom` package improves on the standard U-matrix visualization
 for self-organizing maps [@ultsch1990self] by superimposing starbursts in order to
 highlight cluster structures [@hamel2011improved].
 
@@ -50,14 +50,14 @@ highlight cluster structures [@hamel2011improved].
 At a slightly more detailed level, our `popsom` package implements
 Kohonen's self-organizing maps with a number of distinguishing features:
 
-1. A very efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra providing significant speedups over traditional single-threaded implementations
+1. An efficient, single threaded, stochastic training algorithm based on ideas from tensor algebra providing significant speedups over traditional single-threaded implementations
 without the need for special accelerator hardware. The speedups result from the fact that the
 vector and matrix structures exposed by our algorithm map neatly into
 vector and matrix operations available on today's CPUs.  Our Fortran 90 implementation
-insures that these vector and matrix operations are mapped onto the hardware as efficiently as
+ensures that these vector and matrix operations are mapped onto the hardware as efficiently as
 possible [@hamel2018vsom].
 
-2. Automatic centroid visualization and detection using starbursts [@hamel2011improved]. Not
+2. Automatic centroid detection and visualization using starbursts [@hamel2011improved]. Not
 only does `popsom` display clusters and centroids on the map using starbursts but it
 also computes a cluster model based on the starbursts.  
 
@@ -68,7 +68,7 @@ model where centroid and cluster information is available to the user.  Having t
 two perspectives of a dataset is often helpful during a data analysis.
 
 4. The package provides a number of easily accessible quality metrics for the self-organizing map and the centroid based cluster models [@hamel2016som; @tatoian2018self]. In particular, the package computes the `convergence` of a map which is a linear combination of the variance captured and the topographic fidelity of the map. A value close to one of this metric indicates a converged map. Furthermore, `popsom` also computes the `separation` of the clusters
-in a model.  In general, a value close to one here indicates well separated clusters.
+in the centroid based model.  In general, a value close to one here indicates well separated clusters.
 
 # Usage
 
@@ -143,7 +143,7 @@ the starburst plots the package provides,
 > map.starburst(m)
 ```
 The starburst visualization shown
-in \autoref{fig:map}.  The centroids we extracted from the model earlier are easily
+in \autoref{fig:map}.  The centroids we extracted from the model are easily
 identified on this visualization.  The starbursts indicate the extent of clusters around
 each centroid and the colors of the heatmap indicate the "tightness" of the clusters.
 Hot, yellow usually indicates tight clusters whereas reddish colors indicate looser clusters or
@@ -197,8 +197,8 @@ Quality Assessments:
          0.94       0.93        4
 
 ```
-This is the simplest dataset in our benchmark with 150 instances and 4 columns.
-Running the benchmarks gives us the following performance data where the time is reported in milliseconds,
+This is the simplest dataset among our datasets with 150 instances and 4 columns.
+Running the benchmark gives us the following performance data where the time is reported in milliseconds,
 ```
   package        mean time          speedup
 1  popsom           214.96                1
@@ -229,7 +229,7 @@ The results from the benchmark are,
 2     som          4740.05              12
 3 kohonen         23466.17              59
 ```
-Times are reported in milliseconds.  Here we can see that `popsom` is about 12 times faster than the `som`
+Times are reported in milliseconds.  Here we can see that `popsom` is 12 times faster than the `som`
 package and about 60 times faster than the `kohonen` package.
 
 ## The Wines Dataset
@@ -255,7 +255,7 @@ datasets.  The results for the benchmark are,
 2     som          5453.73                9
 3 kohonen         23433.91               37
 ```
-Times are reported in milliseconds. Here we measure a speedup of 9 compared to the `som` package and a speedup of close to 40 compared
+Times are reported in milliseconds. Here we measure a speedup of 9 with respect to the `som`  package and a speedup of close to 40 with respect
 to the `kohonen` package.
 
 ## The Synthetic Dataset
@@ -273,10 +273,10 @@ Quality Assessments:
   convergence separation clusters
             1          1        9
 ```
-As one would expect from a synthetic dataset without any noise the convergence value
+As one would expect from a synthetic dataset without any noise, the convergence value
 for this map is one: no topographic errors and full modeling of the underlying variance.
-Even though the summary reports 9 clusters have been found it is easily verified visually through
-the use of the starburst function that those 9 clusters are actually subclusters of three major clusters
+Even though the summary reports nine clusters have been found it is easily verified visually through
+the use of the starburst function that those nine clusters are actually subclusters of three major clusters
 as required by the design of the synthetic data.  The performance summary is,
 ```
   package        mean time          speedup

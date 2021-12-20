@@ -35,6 +35,7 @@ iter<-100000
 m<-map.build(df_wines,xdim=x,ydim=y,train=iter,seed=42)
 map.summary(m)
 
+print("### synth data ###")
 # synthetic data with three clusters
 p <- 10
 #n <- 500
@@ -73,8 +74,11 @@ bm <- function(dat,xdim,ydim,iter)
              radius=c(r,r),
              rlen=c(1,iter)),
 
-     kohonen::som(sample(as.matrix(dat),xdim*ydim,replace=TRUE),
-                  rlen=iter,
+     kohonen::som(as.matrix(dat),
+                  rlen=as.integer(iter/nrow(dat)),
+                  radius=r,
+                  alpha=c(.3,.001),
+                  mode="online",
 	          grid=somgrid(xdim=xdim,ydim=ydim,topo="rectangular",neighbourhood.fct="bubble")),
 
      times=3)))
@@ -82,11 +86,17 @@ bm <- function(dat,xdim,ydim,iter)
 
 # run the benchmarks
 
+# compute speedup vector
+speedup <- function (bmr) {
+  popsom.time <- bmr[1,"mean"]
+  c(popsom.time/popsom.time,bmr[2,"mean"]/popsom.time,bmr[3,"mean"]/popsom.time)
+}
+
 print("### Iris ###")
 bmr <- bm(df_iris,xdim=15,ydim=10,iter=100000)
 d <- data.frame(cbind(c("popsom","som","kohonen"),
                       bmr[["mean"]],
-		      c(bmr[1,"mean"]/bmr[1,"mean"],bmr[2,"mean"]/bmr[1,"mean"],bmr[3,"mean"]/bmr[1,"mean"])))
+                      speedup(bmr)))
 names(d)<-c("package","mean time","speedup")
 print(d)
 
@@ -94,7 +104,7 @@ print("### Epil ###")
 bmr <- bm(df_epil,xdim=15,ydim=10,iter=100000)
 d <- data.frame(cbind(c("popsom","som","kohonen"),
                       bmr[["mean"]],
-		      c(bmr[1,"mean"]/bmr[1,"mean"],bmr[2,"mean"]/bmr[1,"mean"],bmr[3,"mean"]/bmr[1,"mean"])))
+                      speedup(bmr)))
 names(d)<-c("package","mean time","speedup")
 print(d)
 
@@ -102,14 +112,17 @@ print("### Wines ###")
 bmr <- bm(df_wines,xdim=15,ydim=10,iter=100000)
 d <- data.frame(cbind(c("popsom","som","kohonen"),
                       bmr[["mean"]],
-		      c(bmr[1,"mean"]/bmr[1,"mean"],bmr[2,"mean"]/bmr[1,"mean"],bmr[3,"mean"]/bmr[1,"mean"])))
+                      speedup(bmr)))
 names(d)<-c("package","mean time","speedup")
 print(d)
 
 print("### Sim ###")
-bmr <- bm(df_sim,xdim=25,ydim=20,iter=1000000)
+x <- 25
+y <- 20
+kohonen_df <- as.data.frame(df_sim[sample(1:nrow(df_sim),x*y,replace=TRUE),])
+bmr <- bm(kohonen_df,xdim=x,ydim=y,iter=1000000)
 d <- data.frame(cbind(c("popsom","som","kohonen"),
                       bmr[["mean"]],
-		      c(bmr[1,"mean"]/bmr[1,"mean"],bmr[2,"mean"]/bmr[1,"mean"],bmr[3,"mean"]/bmr[1,"mean"])))
+                      speedup(bmr)))
 names(d)<-c("package","mean time","speedup")
 print(d)

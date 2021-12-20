@@ -7,6 +7,8 @@
 # and evaluating self-organizing maps (SOMs).
 # The main utilities available in this file are:
 # map.build -------- constructs a map
+# map.summary ------ compute a summary object
+# map.convergence -- details of the convergence index of a map
 # map.starburst ---- displays the starburst representation of the SOM model,
 #                    the centers of starbursts are the centers of clusters
 # map.fitted ------- returns a vector of labels assigned to the observations
@@ -159,7 +161,7 @@ map.build <- function(data,
   ### quality measures of the model ###
 
   # the convergence index of a map
-  map$convergence <- map.convergence(map)
+  map$convergence <- map.convergence(map,verb=FALSE)
 
   # compute the average within cluster sum of squares (wcss)
   # this is the average distance variance within the clusters of the
@@ -479,6 +481,33 @@ map.position <- function (map,points)
   m
 }
 
+# map.convergence - details of the convergence index of a map
+#
+# parameters:
+# - map is an object if type 'map'
+# - conf.int is the confidence interval of the quality assessment (default 95%)
+# - k is the number of samples used for the estimated topographic accuracy
+#   computation
+# - verb if true reports the two convergence components separately, otherwise
+#   it will report the linear combination of the two
+# - ks is a switch, true for ks-test, false for standard var and means test
+#
+# - return value is the convergence index
+map.convergence <- function(map,conf.int=.95,k=50,verb=TRUE,ks = TRUE)
+{
+    if (ks)
+      embed <- map.embed.ks(map,conf.int,verb=FALSE)
+    else
+      embed <- map.embed.vm(map,conf.int,verb=FALSE)
+
+    topo <- map.topo(map,k,conf.int,verb=FALSE,interval=FALSE)
+
+    if (verb)
+        return (list(embed=embed,topo=topo))
+    else
+        return (0.5*embed + 0.5*topo)
+}
+
 #############################################################################
 ############################# local functions ###############################
 #############################################################################
@@ -530,32 +559,6 @@ compute.centroid.obs <- function (map)
   as.vector(centroid.obs)
 }
 
-# map.convergence - the convergence index of a map
-#
-# parameters:
-# - map is an object if type 'map'
-# - conf.int is the confidence interval of the quality assessment (default 95%)
-# - k is the number of samples used for the estimated topographic accuracy
-#   computation
-# - verb if true reports the two convergence components separately, otherwise
-#   it will report the linear combination of the two
-# - ks is a switch, true for ks-test, false for standard var and means test
-#
-# - return value is the convergence index
-map.convergence <- function(map,conf.int=.95,k=50,verb=FALSE,ks = TRUE)
-{
-    if (ks)
-      embed <- map.embed.ks(map,conf.int,verb=FALSE)
-    else
-      embed <- map.embed.vm(map,conf.int,verb=FALSE)
-
-    topo <- map.topo(map,k,conf.int,verb=FALSE,interval=FALSE)
-
-    if (verb)
-        return (list(embed=embed,topo=topo))
-    else
-        return (0.5*embed + 0.5*topo)
-}
 
 # compute.wcss -- compute the average within cluster sum of squares
 # see here:

@@ -10,6 +10,7 @@ importFrom("hash","hash")
 # function exports
 export("map.build")
 export("map.fitted")
+export("map.convergence")
 export("map.marginal")
 export("map.position")
 export("map.predict")

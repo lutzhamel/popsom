@@ -1,8 +1,12 @@
 ### Release 6.0
 
-- renamed the functions in the interface to avoid collisions with S3 functions within the R environment. We know that this is another renaming of the POPSOM interface and we apologize for the inconvenience.  We expect that the interface is now stable for the foreseeable future.
-- New feature: the `map.minimal` object.  This is an object that only contains the trained neurons and nothing else. This is an appropriate model when POPSOM is used as a preprocessing step and no other model information is needed.  Note that `map.minimal` objects cannot be processed by any of the other functions in the POPSOM interface.
+- Renamed the functions in the interface to avoid collisions with S3 functions within the R environment. We know that this is another renaming of the POPSOM interface and we apologize for any inconvenience.  We expect that the interface is now stable for the foreseeable future.
+- New features:
+    * The `map.minimal` object.  This is an object that only contains the trained neurons and nothing else. This is an appropriate model when POPSOM is used as a preprocessing step and no other model information is needed.  Note that `map.minimal` objects cannot be processed by any of the other functions in the POPSOM interface.
+    * The `map.convergence` function provides details about the underlying convergence characteristics.
 - Bugfixes
+  * Most importantly the artificial limit of a minimum of 50 instances in the training
+    data has been removed.
 
 ### Release 5.2
 
