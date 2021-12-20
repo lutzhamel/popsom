@@ -1,14 +1,5 @@
 # Notes on Building Releases
 
-## Running Unit Tests
-
-In order to run the unit tests manually do the following,
-
-1. In R set the working directory to the `package` folder
-in your local Git repository.
-2. Make sure you have the R `devtools` package installed.
-2. Execute the function `devtools::test()`.
-
 ## Building a CRAN release:
 
 In order to build a release follow these steps:
@@ -22,10 +13,38 @@ In order to build a release follow these steps:
 
 2. If the check passes, submit tarball `popsom_xyz.tar.gz` to `https://cran.r-project.org/submit.html`
 
-**NOTE**: the `popsom` folder in the `popsom.Rcheck` folder is
-a valid package. It can be loaded into R as follows:
+## Installing a Package from the GitHub Repository
 
-	R> install.packages("<path to popsom.Rcheck/popsom>",repos=NULL)
+In order to install the popsom package from the repository on a Linux machine make sure that you have Latex and gfortran installed.  Then follow the following steps:
+
+1. In your local repository go to the folder just above the `package` folder and do,
+ ```
+ $ R CMD build package
+ ```
+ Then run the command,
+ ```
+ $ R CMD check popsom_xyz.tar.gz
+ ```
+ where `xyz` is the version number printed out on the last line of the output of the `build package` command.
+
+1. In your directory you should now see a folder `popsom.Rcheck`.  In this folder there is another folder called `popsom` which is an installable R package and can be installed from within R with,
+```
+R> install.packages("<path to>/popsom.Rcheck/popsom",repos=NULL)
+```
+
+1. Finally, in order to use the package you will have to load it,
+```
+R> library(popsom)
+```
+
+## Running Unit Tests
+
+In order to run the unit tests manually do the following,
+
+1. In R set the working directory to the `package` folder
+in your local Git repository.
+2. Make sure you have the R `devtools` package installed.
+2. Execute the function `devtools::test()`.
 
 ## Building/Loading the Shareable Fortran Library
 
@@ -38,7 +57,7 @@ This generates a .so and .o file.
 1. Load `vsom.so` as a dynamic object using `dyn.load()`
 1.  Verify that the dynamic loadable object is loaded using `is.loaded()`
 1.  Load `map-utils.R` using `source()`. You will probably have to do
-    some manual adjustments to the R code to load it outside of a package
+    some **manual adjustments** to the R code to load it outside of a package
     context.
 
 Briefly:
