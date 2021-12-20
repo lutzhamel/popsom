@@ -66,7 +66,7 @@ map.build <- function(data,
                       train=1000,
                       normalize=FALSE,
                       seed=NULL,
-		      minimal=FALSE)
+                      minimal=FALSE)
 {
   if (alpha <= 0 || alpha > 1)
     stop("invalid value for alpha")
