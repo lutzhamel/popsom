@@ -9,13 +9,13 @@ In order to build a release follow these steps:
 	$ R CMD build package
 	$ R CMD check --as-cran popsom_xyz.tar.gz
 	```
-	where `xyz` is the version number given in the DESCRIPTION file.  This builds a folder called `popsom.Rcheck`.
+	where `xyz` is the version number given in the DESCRIPTION file.  Note: This builds a folder called `popsom.Rcheck`.
 
 2. If the check passes, submit tarball `popsom_xyz.tar.gz` to `https://cran.r-project.org/submit.html`
 
 ## Installing a Package from the GitHub Repository
 
-In order to install the popsom package from the repository on a Linux machine make sure that you have Latex and gfortran installed.  Then follow the following steps:
+In order to install the popsom package from the repository on a Linux machine make sure that you have gfortran installed.  Then follow the following steps:
 
 1. In your local repository go to the folder just above the `package` folder and do,
  ```
@@ -23,16 +23,11 @@ In order to install the popsom package from the repository on a Linux machine ma
  ```
  Then run the command,
  ```
- $ R CMD check popsom_xyz.tar.gz
+ $ R CMD INSTALL popsom_xyz.tar.gz
  ```
  where `xyz` is the version number printed out on the last line of the output of the `build package` command.
 
-1. In your directory you should now see a folder `popsom.Rcheck`.  In this folder there is another folder called `popsom` which is an installable R package and can be installed from within R with,
-```
-R> install.packages("<path to>/popsom.Rcheck/popsom",repos=NULL)
-```
-
-1. Finally, in order to use the package you will have to load it,
+1. Finally, in order to use the package you will have to load it inside of the R environment,
 ```
 R> library(popsom)
 ```
