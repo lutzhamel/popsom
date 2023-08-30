@@ -54,7 +54,6 @@ loadNamespace("hash")
 # - alpha - the learning rate, should be a positive non-zero real number
 # - train - number of training iterations
 # - normalize - normalize the input data by row
-# - seed - a seed value for repeatablity of random initialization and selection
 # - minimal - when true only the trained neuron's are returned.
 # value:
 # - an object of type 'map' -- see below
@@ -65,7 +64,6 @@ map.build <- function(data,
                       alpha=.3,
                       train=1000,
                       normalize=FALSE,
-                      seed=NULL,
                       minimal=FALSE)
 {
   if (alpha <= 0 || alpha > 1)
@@ -86,12 +84,6 @@ map.build <- function(data,
   if (normalize)
     data <- map.normalize(data)
 
-  if (!is.null(seed) && seed <= 0)
-    stop("seed value has to be a positive integer value")
-
-  if (!is.null(seed) && !test.integer(seed))
-    stop("seed value has to be a positive integer value")
-
   if (!test.integer(train))
     stop("train value has to be a positive integer value")
 
@@ -100,8 +92,7 @@ map.build <- function(data,
                     xdim=xdim,
                     ydim=ydim,
                     alpha=alpha,
-                    train=train,
-                    seed=seed)
+                    train=train)
 
   # make the neuron data a data frame
   neurons <- data.frame(neurons)
@@ -115,7 +106,6 @@ map.build <- function(data,
               alpha=alpha,
               train=train,
               normalize=normalize,
-              seed=seed,
               neurons=neurons)
 
   # add the class name
@@ -195,7 +185,6 @@ map.summary <- function(map, verb=TRUE)
               "alpha",
               "train",
               "normalize",
-              "seed",
               "instances",
               "columns")
   v <- c(map$xdim,
@@ -203,7 +192,6 @@ map.summary <- function(map, verb=TRUE)
          map$alpha,
          map$train,
          if (map$normalize) "TRUE" else "FALSE",
-         if (is.null(map$seed)) "NULL" else map$seed,
          nrow(map$data),
          ncol(map$data))
   df <- data.frame(t(v))
@@ -1626,7 +1614,7 @@ df.mean.test <- function(df1,df2,conf = .95)
 
 # vsom.f - vectorized and optimized version of the stochastic
 # SOM training algorithm written in Fortran90
-vsom.f <- function(data,xdim,ydim,alpha,train,seed)
+vsom.f <- function(data,xdim,ydim,alpha,train)
 {
     ### some constants
     dr <- nrow(data)
@@ -1634,16 +1622,6 @@ vsom.f <- function(data,xdim,ydim,alpha,train,seed)
     nr <- xdim*ydim
     nc <- dc # dim of data and neurons is the same
 
-    ### build and initialize the matrix holding the neurons
-    if (!is.null(seed))
-    {
-        set.seed(seed)
-    }
-    else
-    {
-        # send a -1 to Fortran function to indicate no seed present
-        seed <- -1
-    }
     cells <- nr * nc        # no. of neurons times number of data dimensions
     v <- runif(cells,-1,1)  # vector with small init values for all neurons
     # NOTE: each row represents a neuron, each column represents a dimension.
@@ -1658,7 +1636,6 @@ vsom.f <- function(data,xdim,ydim,alpha,train,seed)
                        as.integer(ydim),
                        as.single(alpha),
                        as.integer(train),
-                       as.integer(seed),
                        PACKAGE="popsom")
 
     # unpack the structure and list in result[1]
