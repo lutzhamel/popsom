@@ -10,7 +10,8 @@ extern void F77_NAME(vsom)(float *neurons,
                            const int *xdim,
                            const int *ydim,
                            const float *alpha,
-                           const int *train);
+                           const int *train,
+                           const int *seed);
 
 static const R_FortranMethodDef FortranEntries[] = {
     {"vsom", (DL_FUNC) &F77_NAME(vsom), 9},

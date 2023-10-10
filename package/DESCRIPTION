@@ -1,6 +1,7 @@
 Package: popsom
 Version: 6.0
-Title: An Efficient Implementation of Kohonen's Self-Organizing Maps (SOMs) with Starburst Visualizations
+Title: An Efficient Implementation of Kohonen's Self-Organizing Maps
+        (SOMs) with Starburst Visualizations
 Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@uri.edu"),
              person("Benjamin", "Ott", role = "aut"),
              person("Gregory", "Breard", role = "aut"),
@@ -8,8 +9,7 @@ Authors@R: c(person("Lutz", "Hamel", role = c("aut", "cre"), email = "lutzhamel@
              person("Michael", "Eiger", role = "aut"),
              person("Vishakh", "Gopu", role = "aut"))
 Imports: fields, graphics, ggplot2, hash, stats, grDevices
-Suggests:
-    testthat (>= 3.0.0)
+Suggests: testthat (>= 3.0.0)
 Description: Kohonen's self-organizing maps with a number of distinguishing features:
     (1) An efficient, single threaded, stochastic training algorithm inspired by ideas from tensor algebra.  Provides significant speedups over traditional single-threaded training algorithms. No special accelerator hardware required (see <doi:10.1007/978-3-030-01057-7_60>).
     (2) Automatic centroid detection and visualization using starbursts.
@@ -19,3 +19,14 @@ License: GPL-3
 URL: https://github.com/lutzhamel/popsom
 BugReports: https://github.com/lutzhamel/popsom/issues
 Config/testthat/edition: 3
+NeedsCompilation: yes
+Packaged: 2021-12-20 20:07:30 UTC; ubuntu
+Author: Lutz Hamel [aut, cre],
+  Benjamin Ott [aut],
+  Gregory Breard [aut],
+  Robert Tatoian [aut],
+  Michael Eiger [aut],
+  Vishakh Gopu [aut]
+Maintainer: Lutz Hamel <lutzhamel@uri.edu>
+Repository: CRAN
+Date/Publication: 2021-12-20 20:40:02 UTC
